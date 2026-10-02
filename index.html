@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTR Real-Time Load Estimator</title>
+    <title>MTR Real-Time Network Estimator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
@@ -40,53 +40,50 @@
 </head>
 <body class="min-h-screen flex flex-col items-center py-6 px-4 sm:px-6 lg:px-8">
 
-    <div class="w-full max-w-5xl space-y-6">
+    <div class="w-full max-w-6xl space-y-6">
         
         <!-- Header -->
         <header class="text-center space-y-2">
             <h1 class="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400 flex items-center justify-center gap-3">
-                <i class="ph-fill ph-train text-emerald-400"></i>
-                MTR Load Estimator
+                <i class="ph-fill ph-train-regional text-emerald-400"></i>
+                MTR Network Estimator
             </h1>
-            <p class="text-slate-400 text-sm md:text-base">Real-time ETAs & algorithmic passenger load prediction</p>
+            <p class="text-slate-400 text-sm md:text-base">Real-time ETAs & algorithmic load prediction for Heavy & Light Rail</p>
         </header>
 
         <!-- Controls Section -->
         <section class="glass rounded-2xl p-5 shadow-xl space-y-4">
-            <div class="flex flex-col sm:flex-row gap-4 items-end">
+            <div class="flex flex-col md:flex-row gap-4 items-end">
                 
-                <div class="w-full sm:w-1/3">
+                <div class="w-full md:w-1/3">
                     <label class="block text-sm font-medium text-slate-300 mb-1">Browse by Line</label>
                     <select id="lineSelect" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-emerald-500 outline-none transition">
-                        <option value="TCL">Tung Chung Line</option>
-                        <option value="TWL">Tsuen Wan Line</option>
-                        <option value="TML">Tuen Ma Line</option>
+                        <!-- Populated dynamically by JS -->
                     </select>
                 </div>
 
-                <div class="w-full sm:w-1/3">
-                    <label class="block text-sm font-medium text-slate-300 mb-1">Station</label>
+                <div class="w-full md:w-1/3">
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Station (Interchanges Auto-Link)</label>
                     <select id="stationSelect" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-emerald-500 outline-none transition">
                         <!-- Populated by JS -->
                     </select>
                 </div>
 
-                <div class="w-full sm:w-1/3">
+                <div class="w-full md:w-1/3">
                     <button id="gpsBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2.5 px-4 rounded-lg transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
                         <i class="ph ph-crosshair text-lg"></i>
-                        Find Nearest GPS
+                        Nearest Station
                     </button>
                 </div>
             </div>
 
-            <!-- Status & Countdown Indicator -->
+            <!-- Status Indicator -->
             <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50">
                 <div id="statusBox" class="text-sm flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" id="statusDot"></div>
-                    <span id="statusText" class="text-slate-300">Initializing client-side connection...</span>
+                    <span id="statusText" class="text-slate-300">Initializing client-side connection to data.gov.hk...</span>
                 </div>
                 
-                <!-- Real-Time Countdown -->
                 <div id="countdownBox" class="hidden text-sm font-mono text-emerald-400 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
                     <i class="ph ph-arrows-clockwise text-emerald-400" id="syncIcon"></i>
                     <span id="countdownText">15s</span>
@@ -94,19 +91,40 @@
             </div>
         </section>
 
-        <!-- Dynamic Results Section (Handles Multiple Lines for Interchanges) -->
-        <section id="resultsContainer" class="space-y-8">
+        <!-- Dynamic Results Section -->
+        <section id="resultsContainer" class="space-y-10">
             <!-- Dynamically populated by JS -->
         </section>
         
         <footer class="text-center text-slate-500 text-xs py-4">
-            <p>Data fetched directly via client-side API to data.gov.hk. Load factor is an algorithmically simulated estimate.</p>
+            <p>Data fetched directly via client-side API from data.gov.hk. Load factor is an algorithmically simulated estimate.</p>
         </footer>
     </div>
 
     <script>
+        // Complete Network Definition
+        const LINE_META = {
+            'AEL': { name: 'Airport Express', color: 'bg-teal-500', border: 'border-t-teal-500', text: 'text-teal-400' },
+            'TCL': { name: 'Tung Chung Line', color: 'bg-orange-500', border: 'border-t-orange-500', text: 'text-orange-400' },
+            'TML': { name: 'Tuen Ma Line', color: 'bg-amber-700', border: 'border-t-amber-700', text: 'text-amber-600' },
+            'TKL': { name: 'Tseung Kwan O Line', color: 'bg-purple-500', border: 'border-t-purple-500', text: 'text-purple-400' },
+            'EAL': { name: 'East Rail Line', color: 'bg-cyan-500', border: 'border-t-cyan-500', text: 'text-cyan-400' },
+            'SIL': { name: 'South Island Line', color: 'bg-lime-500', border: 'border-t-lime-500', text: 'text-lime-400' },
+            'TWL': { name: 'Tsuen Wan Line', color: 'bg-red-500', border: 'border-t-red-500', text: 'text-red-400' },
+            'ISL': { name: 'Island Line', color: 'bg-blue-600', border: 'border-t-blue-600', text: 'text-blue-400' },
+            'KTL': { name: 'Kwun Tong Line', color: 'bg-green-500', border: 'border-t-green-500', text: 'text-green-400' },
+            'LRT': { name: 'Light Rail', color: 'bg-yellow-500', border: 'border-t-yellow-500', text: 'text-yellow-400' }
+        };
+
         const STATIONS = [
-            // Tung Chung Line (TCL)
+            // Airport Express
+            { line: 'AEL', code: 'HOK', name: 'Hong Kong', lat: 22.2846, lng: 114.1581, isTerminal: true },
+            { line: 'AEL', code: 'KOW', name: 'Kowloon', lat: 22.3043, lng: 114.1615, isTerminal: false },
+            { line: 'AEL', code: 'TSY', name: 'Tsing Yi', lat: 22.3584, lng: 114.1069, isTerminal: false },
+            { line: 'AEL', code: 'AIR', name: 'Airport', lat: 22.3153, lng: 113.9350, isTerminal: false },
+            { line: 'AEL', code: 'AWE', name: 'AsiaWorld-Expo', lat: 22.3211, lng: 113.9431, isTerminal: true },
+
+            // Tung Chung Line
             { line: 'TCL', code: 'HOK', name: 'Hong Kong', lat: 22.2846, lng: 114.1581, isTerminal: true },
             { line: 'TCL', code: 'KOW', name: 'Kowloon', lat: 22.3043, lng: 114.1615, isTerminal: false },
             { line: 'TCL', code: 'OLY', name: 'Olympic', lat: 22.3177, lng: 114.1602, isTerminal: false },
@@ -116,7 +134,7 @@
             { line: 'TCL', code: 'SUN', name: 'Sunny Bay', lat: 22.3314, lng: 114.0298, isTerminal: false },
             { line: 'TCL', code: 'TUC', name: 'Tung Chung', lat: 22.2894, lng: 113.9405, isTerminal: true },
 
-            // Tsuen Wan Line (TWL)
+            // Tsuen Wan Line
             { line: 'TWL', code: 'CEN', name: 'Central', lat: 22.2819, lng: 114.1577, isTerminal: true },
             { line: 'TWL', code: 'ADM', name: 'Admiralty', lat: 22.2795, lng: 114.1646, isTerminal: false },
             { line: 'TWL', code: 'TST', name: 'Tsim Sha Tsui', lat: 22.2976, lng: 114.1722, isTerminal: false },
@@ -134,12 +152,94 @@
             { line: 'TWL', code: 'TWH', name: 'Tai Wo Hau', lat: 22.3706, lng: 114.1230, isTerminal: false },
             { line: 'TWL', code: 'TSW', name: 'Tsuen Wan', lat: 22.3739, lng: 114.1186, isTerminal: true },
 
-            // Tuen Ma Line (TML)
+            // Kwun Tong Line
+            { line: 'KTL', code: 'WHA', name: 'Whampoa', lat: 22.3033, lng: 114.1897, isTerminal: true },
+            { line: 'KTL', code: 'HOM', name: 'Ho Man Tin', lat: 22.3093, lng: 114.1827, isTerminal: false },
+            { line: 'KTL', code: 'YMT', name: 'Yau Ma Tei', lat: 22.3134, lng: 114.1706, isTerminal: false },
+            { line: 'KTL', code: 'MOK', name: 'Mong Kok', lat: 22.3201, lng: 114.1697, isTerminal: false },
+            { line: 'KTL', code: 'PRE', name: 'Prince Edward', lat: 22.3245, lng: 114.1681, isTerminal: false },
+            { line: 'KTL', code: 'SKM', name: 'Shek Kip Mei', lat: 22.3323, lng: 114.1686, isTerminal: false },
+            { line: 'KTL', code: 'KOT', name: 'Kowloon Tong', lat: 22.3371, lng: 114.1758, isTerminal: false },
+            { line: 'KTL', code: 'LOF', name: 'Lok Fu', lat: 22.3377, lng: 114.1873, isTerminal: false },
+            { line: 'KTL', code: 'WTS', name: 'Wong Tai Sin', lat: 22.3413, lng: 114.1932, isTerminal: false },
+            { line: 'KTL', code: 'DIH', name: 'Diamond Hill', lat: 22.3402, lng: 114.2017, isTerminal: false },
+            { line: 'KTL', code: 'CHH', name: 'Choi Hung', lat: 22.3343, lng: 114.2046, isTerminal: false },
+            { line: 'KTL', code: 'KOB', name: 'Kowloon Bay', lat: 22.3236, lng: 114.2141, isTerminal: false },
+            { line: 'KTL', code: 'NTK', name: 'Ngau Tau Kok', lat: 22.3155, lng: 114.2192, isTerminal: false },
+            { line: 'KTL', code: 'KWT', name: 'Kwun Tong', lat: 22.3121, lng: 114.2263, isTerminal: false },
+            { line: 'KTL', code: 'LAT', name: 'Lam Tin', lat: 22.3072, lng: 114.2372, isTerminal: false },
+            { line: 'KTL', code: 'YAT', name: 'Yau Tong', lat: 22.2974, lng: 114.2382, isTerminal: false },
+            { line: 'KTL', code: 'TIK', name: 'Tiu Keng Leng', lat: 22.3047, lng: 114.2526, isTerminal: true },
+
+            // Island Line
+            { line: 'ISL', code: 'KET', name: 'Kennedy Town', lat: 22.2811, lng: 114.1276, isTerminal: true },
+            { line: 'ISL', code: 'HKU', name: 'HKU', lat: 22.2844, lng: 114.1352, isTerminal: false },
+            { line: 'ISL', code: 'SYP', name: 'Sai Ying Pun', lat: 22.2870, lng: 114.1420, isTerminal: false },
+            { line: 'ISL', code: 'SHW', name: 'Sheung Wan', lat: 22.2870, lng: 114.1523, isTerminal: false },
+            { line: 'ISL', code: 'CEN', name: 'Central', lat: 22.2819, lng: 114.1577, isTerminal: false },
+            { line: 'ISL', code: 'ADM', name: 'Admiralty', lat: 22.2795, lng: 114.1646, isTerminal: false },
+            { line: 'ISL', code: 'WAC', name: 'Wan Chai', lat: 22.2777, lng: 114.1729, isTerminal: false },
+            { line: 'ISL', code: 'CAB', name: 'Causeway Bay', lat: 22.2804, lng: 114.1848, isTerminal: false },
+            { line: 'ISL', code: 'TIN', name: 'Tin Hau', lat: 22.2828, lng: 114.1916, isTerminal: false },
+            { line: 'ISL', code: 'FOT', name: 'Fortress Hill', lat: 22.2882, lng: 114.1939, isTerminal: false },
+            { line: 'ISL', code: 'NOP', name: 'North Point', lat: 22.2917, lng: 114.2007, isTerminal: false },
+            { line: 'ISL', code: 'QUO', name: 'Quarry Bay', lat: 22.2876, lng: 114.2114, isTerminal: false },
+            { line: 'ISL', code: 'TAK', name: 'Tai Koo', lat: 22.2851, lng: 114.2173, isTerminal: false },
+            { line: 'ISL', code: 'SKW', name: 'Sai Wan Ho', lat: 22.2823, lng: 114.2215, isTerminal: false },
+            { line: 'ISL', code: 'SWH', name: 'Shau Kei Wan', lat: 22.2794, lng: 114.2295, isTerminal: false },
+            { line: 'ISL', code: 'HFC', name: 'Heng Fa Chuen', lat: 22.2773, lng: 114.2400, isTerminal: false },
+            { line: 'ISL', code: 'CHW', name: 'Chai Wan', lat: 22.2647, lng: 114.2374, isTerminal: true },
+
+            // Tseung Kwan O Line
+            { line: 'TKL', code: 'NOP', name: 'North Point', lat: 22.2917, lng: 114.2007, isTerminal: true },
+            { line: 'TKL', code: 'QUO', name: 'Quarry Bay', lat: 22.2876, lng: 114.2114, isTerminal: false },
+            { line: 'TKL', code: 'YAT', name: 'Yau Tong', lat: 22.2974, lng: 114.2382, isTerminal: false },
+            { line: 'TKL', code: 'TIK', name: 'Tiu Keng Leng', lat: 22.3047, lng: 114.2526, isTerminal: false },
+            { line: 'TKL', code: 'TKO', name: 'Tseung Kwan O', lat: 22.3073, lng: 114.2604, isTerminal: false },
+            { line: 'TKL', code: 'LHP', name: 'LOHAS Park', lat: 22.2952, lng: 114.2690, isTerminal: true },
+            { line: 'TKL', code: 'HAO', name: 'Hang Hau', lat: 22.3157, lng: 114.2651, isTerminal: false },
+            { line: 'TKL', code: 'POA', name: 'Po Lam', lat: 22.3230, lng: 114.2595, isTerminal: true },
+
+            // East Rail Line
+            { line: 'EAL', code: 'ADM', name: 'Admiralty', lat: 22.2795, lng: 114.1646, isTerminal: true },
+            { line: 'EAL', code: 'EXC', name: 'Exhibition Centre', lat: 22.2818, lng: 114.1758, isTerminal: false },
+            { line: 'EAL', code: 'HUH', name: 'Hung Hom', lat: 22.3031, lng: 114.1818, isTerminal: false },
+            { line: 'EAL', code: 'MKK', name: 'Mong Kok East', lat: 22.3217, lng: 114.1729, isTerminal: false },
+            { line: 'EAL', code: 'KOT', name: 'Kowloon Tong', lat: 22.3371, lng: 114.1758, isTerminal: false },
+            { line: 'EAL', code: 'TAW', name: 'Tai Wai', lat: 22.3732, lng: 114.1783, isTerminal: false },
+            { line: 'EAL', code: 'SHT', name: 'Sha Tin', lat: 22.3826, lng: 114.1878, isTerminal: false },
+            { line: 'EAL', code: 'FOT', name: 'Fo Tan', lat: 22.3965, lng: 114.1969, isTerminal: false },
+            { line: 'EAL', code: 'RAC', name: 'Racecourse', lat: 22.3999, lng: 114.2039, isTerminal: false },
+            { line: 'EAL', code: 'UNI', name: 'University', lat: 22.4132, lng: 114.2107, isTerminal: false },
+            { line: 'EAL', code: 'TAP', name: 'Tai Po Market', lat: 22.4447, lng: 114.1678, isTerminal: false },
+            { line: 'EAL', code: 'TWO', name: 'Tai Wo', lat: 22.4513, lng: 114.1611, isTerminal: false },
+            { line: 'EAL', code: 'FAN', name: 'Fanling', lat: 22.4920, lng: 114.1384, isTerminal: false },
+            { line: 'EAL', code: 'SHS', name: 'Sheung Shui', lat: 22.5015, lng: 114.1281, isTerminal: false },
+            { line: 'EAL', code: 'LOW', name: 'Lo Wu', lat: 22.5290, lng: 114.1132, isTerminal: true },
+            { line: 'EAL', code: 'LMC', name: 'Lok Ma Chau', lat: 22.5165, lng: 114.0645, isTerminal: true },
+
+            // South Island Line
+            { line: 'SIL', code: 'ADM', name: 'Admiralty', lat: 22.2795, lng: 114.1646, isTerminal: true },
+            { line: 'SIL', code: 'OCP', name: 'Ocean Park', lat: 22.2476, lng: 114.1751, isTerminal: false },
+            { line: 'SIL', code: 'WCH', name: 'Wong Chuk Hang', lat: 22.2478, lng: 114.1687, isTerminal: false },
+            { line: 'SIL', code: 'LET', name: 'Lei Tung', lat: 22.2415, lng: 114.1561, isTerminal: false },
+            { line: 'SIL', code: 'SOH', name: 'South Horizons', lat: 22.2443, lng: 114.1481, isTerminal: true },
+
+            // Tuen Ma Line
             { line: 'TML', code: 'WKS', name: 'Wu Kai Sha', lat: 22.4285, lng: 114.2443, isTerminal: true },
             { line: 'TML', code: 'MOS', name: 'Ma On Shan', lat: 22.4253, lng: 114.2319, isTerminal: false },
+            { line: 'TML', code: 'HEO', name: 'Heng On', lat: 22.4173, lng: 114.2255, isTerminal: false },
+            { line: 'TML', code: 'TSH', name: 'Tai Shui Hang', lat: 22.4087, lng: 114.2215, isTerminal: false },
+            { line: 'TML', code: 'CIO', name: 'City One', lat: 22.3875, lng: 114.2036, isTerminal: false },
+            { line: 'TML', code: 'STW', name: 'Sha Tin Wai', lat: 22.3807, lng: 114.1945, isTerminal: false },
+            { line: 'TML', code: 'CKT', name: 'Che Kung Temple', lat: 22.3755, lng: 114.1866, isTerminal: false },
             { line: 'TML', code: 'TAW', name: 'Tai Wai', lat: 22.3732, lng: 114.1783, isTerminal: false },
+            { line: 'TML', code: 'HIK', name: 'Hin Keng', lat: 22.3637, lng: 114.1717, isTerminal: false },
             { line: 'TML', code: 'DIH', name: 'Diamond Hill', lat: 22.3402, lng: 114.2017, isTerminal: false },
+            { line: 'TML', code: 'KAT', name: 'Kai Tak', lat: 22.3323, lng: 114.1966, isTerminal: false },
+            { line: 'TML', code: 'SUW', name: 'Sung Wong Toi', lat: 22.3275, lng: 114.1906, isTerminal: false },
             { line: 'TML', code: 'TKW', name: 'To Kwa Wan', lat: 22.3168, lng: 114.1887, isTerminal: false },
+            { line: 'TML', code: 'HOM', name: 'Ho Man Tin', lat: 22.3093, lng: 114.1827, isTerminal: false },
             { line: 'TML', code: 'HUH', name: 'Hung Hom', lat: 22.3031, lng: 114.1818, isTerminal: false },
             { line: 'TML', code: 'ETS', name: 'East Tsim Sha Tsui', lat: 22.2963, lng: 114.1748, isTerminal: false },
             { line: 'TML', code: 'AUS', name: 'Austin', lat: 22.3045, lng: 114.1661, isTerminal: false },
@@ -148,15 +248,22 @@
             { line: 'TML', code: 'TWW', name: 'Tsuen Wan West', lat: 22.3686, lng: 114.1114, isTerminal: false },
             { line: 'TML', code: 'KSR', name: 'Kam Sheung Road', lat: 22.4343, lng: 114.0645, isTerminal: false },
             { line: 'TML', code: 'YUL', name: 'Yuen Long', lat: 22.4462, lng: 114.0347, isTerminal: false },
+            { line: 'TML', code: 'LOP', name: 'Long Ping', lat: 22.4475, lng: 114.0255, isTerminal: false },
             { line: 'TML', code: 'TIS', name: 'Tin Shui Wai', lat: 22.4462, lng: 114.0049, isTerminal: false },
-            { line: 'TML', code: 'TUM', name: 'Tuen Mun', lat: 22.3948, lng: 113.9739, isTerminal: true }
-        ];
+            { line: 'TML', code: 'SIH', name: 'Siu Hong', lat: 22.4111, lng: 113.9789, isTerminal: false },
+            { line: 'TML', code: 'TUM', name: 'Tuen Mun', lat: 22.3948, lng: 113.9739, isTerminal: true },
 
-        const LINE_META = {
-            'TCL': { name: 'Tung Chung Line', color: 'bg-orange-500', border: 'border-t-orange-500', text: 'text-orange-400' },
-            'TWL': { name: 'Tsuen Wan Line', color: 'bg-red-500', border: 'border-t-red-500', text: 'text-red-400' },
-            'TML': { name: 'Tuen Ma Line', color: 'bg-amber-700', border: 'border-t-amber-700', text: 'text-amber-600' }
-        };
+            // Light Rail (LRT) - Interchanges and Major Hubs
+            { line: 'LRT', code: '600', name: 'Yuen Long', lat: 22.4462, lng: 114.0347, isTerminal: true },
+            { line: 'LRT', code: '430', name: 'Tin Shui Wai', lat: 22.4462, lng: 114.0049, isTerminal: false },
+            { line: 'LRT', code: '110', name: 'Siu Hong', lat: 22.4111, lng: 113.9789, isTerminal: false },
+            { line: 'LRT', code: '295', name: 'Tuen Mun', lat: 22.3948, lng: 113.9739, isTerminal: false },
+            { line: 'LRT', code: '280', name: 'Town Centre', lat: 22.3912, lng: 113.9754, isTerminal: false },
+            { line: 'LRT', code: '001', name: 'Ferry Pier', lat: 22.3725, lng: 113.9652, isTerminal: true },
+            { line: 'LRT', code: '920', name: 'Sam Shing', lat: 22.3802, lng: 113.9785, isTerminal: true },
+            { line: 'LRT', code: '550', name: 'Tin Yat', lat: 22.4646, lng: 113.9989, isTerminal: true },
+            { line: 'LRT', code: '455', name: 'Ginza', lat: 22.4578, lng: 114.0028, isTerminal: false }
+        ];
 
         // DOM Elements
         const lineSelect = document.getElementById('lineSelect');
@@ -165,17 +272,25 @@
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
         const resultsContainer = document.getElementById('resultsContainer');
-        
         const countdownBox = document.getElementById('countdownBox');
         const countdownText = document.getElementById('countdownText');
         const syncIcon = document.getElementById('syncIcon');
 
         let countdownTimer = null;
         let timeRemaining = 15;
-        const REFRESH_RATE_SECONDS = 15;
+        const REFRESH_RATE = 15;
 
         function init() {
-            populateStationDropdown('TCL');
+            // Auto-populate Line Select
+            Object.entries(LINE_META).forEach(([code, meta]) => {
+                const opt = document.createElement('option');
+                opt.value = code;
+                opt.textContent = meta.name;
+                lineSelect.appendChild(opt);
+            });
+            lineSelect.value = 'TML'; // Default to a line with lots of interchanges
+
+            populateStationDropdown('TML');
             
             lineSelect.addEventListener('change', (e) => {
                 populateStationDropdown(e.target.value);
@@ -188,57 +303,52 @@
             locateNearestStation();
         }
 
-        function populateStationDropdown(lineCode, selectStationCode = null) {
+        function populateStationDropdown(lineCode, selectStationName = null) {
             stationSelect.innerHTML = '';
             const filtered = STATIONS.filter(s => s.line === lineCode);
             filtered.forEach(station => {
                 const opt = document.createElement('option');
-                opt.value = station.code;
-                opt.textContent = `${station.name} (${station.code})`;
+                opt.value = station.name; // Use NAME as value for interchange matching
+                opt.textContent = station.name;
                 stationSelect.appendChild(opt);
             });
 
-            if (selectStationCode) {
-                stationSelect.value = selectStationCode;
+            if (selectStationName) {
+                stationSelect.value = selectStationName;
             }
         }
 
-        function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+        // Distance calc
+        function getDistance(lat1, lon1, lat2, lon2) {
             const R = 6371; 
-            const dLat = deg2rad(lat2 - lat1);
-            const dLon = deg2rad(lon2 - lon1);
-            const a = 
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-                Math.sin(dLon / 2) * Math.sin(dLon / 2); 
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2); 
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
             return R * c; 
         }
 
-        function deg2rad(deg) { return deg * (Math.PI / 180); }
-
         function locateNearestStation() {
-            updateStatus('Locating you via GPS...', 'yellow');
+            updateStatus('Locating via GPS...', 'yellow');
             gpsBtn.disabled = true;
             gpsBtn.innerHTML = '<i class="ph ph-spinner animate-spin text-lg"></i> Locating...';
 
             if (!navigator.geolocation) {
-                updateStatus('Geolocation not supported.', 'red');
+                updateStatus('Geolocation denied.', 'red');
                 resetGpsBtn();
                 fetchRealTimeData();
                 return;
             }
 
             navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const userLat = position.coords.latitude;
-                    const userLng = position.coords.longitude;
-                    
+                (pos) => {
                     let nearest = null;
                     let minDistance = Infinity;
 
                     STATIONS.forEach(station => {
-                        const dist = getDistanceFromLatLonInKm(userLat, userLng, station.lat, station.lng);
+                        const dist = getDistance(pos.coords.latitude, pos.coords.longitude, station.lat, station.lng);
                         if (dist < minDistance) {
                             minDistance = dist;
                             nearest = station;
@@ -246,43 +356,36 @@
                     });
 
                     if (nearest) {
-                        updateStatus(`Found nearest: ${nearest.name} (${minDistance.toFixed(1)}km)`, 'green');
+                        updateStatus(`Nearest: ${nearest.name} (${minDistance.toFixed(1)}km)`, 'green');
                         lineSelect.value = nearest.line;
-                        populateStationDropdown(nearest.line, nearest.code);
+                        populateStationDropdown(nearest.line, nearest.name);
                         fetchRealTimeData();
                     }
                     resetGpsBtn();
                 },
-                (error) => {
-                    console.warn(error);
-                    updateStatus('GPS Access Denied. Using default.', 'red');
+                (err) => {
+                    updateStatus('GPS Failed. Using default.', 'red');
                     resetGpsBtn();
                     fetchRealTimeData();
                 },
-                { enableHighAccuracy: false, timeout: 5000, maximumAge: 0 }
+                { timeout: 5000 }
             );
         }
 
         function resetGpsBtn() {
             gpsBtn.disabled = false;
-            gpsBtn.innerHTML = '<i class="ph ph-crosshair text-lg"></i> Find Nearest GPS';
+            gpsBtn.innerHTML = '<i class="ph ph-crosshair text-lg"></i> Nearest Station';
         }
 
         function updateStatus(msg, color) {
             statusText.textContent = msg;
-            
-            const colorMap = {
-                yellow: 'bg-yellow-500',
-                green: 'bg-green-500',
-                red: 'bg-red-500'
-            };
-            statusDot.className = `w-2 h-2 rounded-full animate-pulse ${colorMap[color] || 'bg-slate-500'}`;
+            const colors = { yellow: 'bg-yellow-500', green: 'bg-green-500', red: 'bg-red-500' };
+            statusDot.className = `w-2 h-2 rounded-full animate-pulse ${colors[color]}`;
         }
 
         function startCountdown() {
             if (countdownTimer) clearInterval(countdownTimer);
-            
-            timeRemaining = REFRESH_RATE_SECONDS;
+            timeRemaining = REFRESH_RATE;
             countdownBox.classList.remove('hidden');
             syncIcon.classList.remove('animate-spin');
             countdownText.textContent = `${timeRemaining}s`;
@@ -299,178 +402,185 @@
         }
 
         async function fetchRealTimeData() {
-            const sta = stationSelect.value;
-            if(!sta) return;
+            const selectedName = stationSelect.value;
+            if(!selectedName) return;
 
-            // IDENTIFY ALL INTERSECTING LINES FOR THIS STATION
-            const activeLinesAtStation = [...new Set(STATIONS.filter(s => s.code === sta).map(s => s.line))];
+            // INTERCHANGE LOGIC: Find all lines that share this exact station name
+            const activeStations = STATIONS.filter(s => s.name === selectedName);
 
             if (countdownTimer) clearInterval(countdownTimer);
             syncIcon.classList.add('animate-spin');
-            countdownText.textContent = 'Syncing...';
-            updateStatus(`Fetching live data for all lines at station...`, 'yellow');
+            countdownText.textContent = 'Sync...';
+            updateStatus(`Fetching live network data...`, 'yellow');
             
-            resultsContainer.innerHTML = '<p class="text-slate-400 text-sm text-center py-12"><i class="ph ph-spinner animate-spin text-2xl"></i><br>Syncing platform data...</p>';
+            resultsContainer.innerHTML = '<p class="text-slate-400 text-center py-12"><i class="ph ph-spinner animate-spin text-3xl"></i><br>Syncing platform data from data.gov.hk...</p>';
 
             try {
-                // Fetch all lines running through this station concurrently
-                const fetchPromises = activeLinesAtStation.map(async (lineCode) => {
+                // Fetch concurrently for all intersecting lines
+                const fetchPromises = activeStations.map(async (stn) => {
                     try {
-                        const response = await fetch(`https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=${lineCode}&sta=${sta}`);
-                        const data = await response.json();
-                        return { lineCode, data, success: data.status === 1 };
+                        let url, res, data;
+                        if (stn.line === 'LRT') {
+                            url = `https://rt.data.gov.hk/v1/transport/mtr/lrt/getSchedule?station_id=${stn.code}`;
+                            res = await fetch(url);
+                            data = await res.json();
+                            return { type: 'LRT', lineCode: stn.line, stn, data, success: data.status === 1 };
+                        } else {
+                            url = `https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=${stn.line}&sta=${stn.code}`;
+                            res = await fetch(url);
+                            data = await res.json();
+                            return { type: 'HR', lineCode: stn.line, stn, data, success: (data.status === 1 || (data.data && Object.keys(data.data).length > 0)) };
+                        }
                     } catch (err) {
-                        return { lineCode, success: false, error: err };
+                        return { type: stn.line === 'LRT' ? 'LRT' : 'HR', lineCode: stn.line, stn, success: false, error: err };
                     }
                 });
 
                 const results = await Promise.all(fetchPromises);
-                resultsContainer.innerHTML = ''; // Clear loading spinner
+                resultsContainer.innerHTML = ''; 
                 
-                let lastUpdateTime = '';
+                let lastUpdateTime = new Date().toLocaleTimeString();
 
-                // Render blocks for each line
                 results.forEach(result => {
                     const meta = LINE_META[result.lineCode];
                     
-                    // Create Line Section Wrapper
-                    const sectionHTML = `
-                        <div class="space-y-4">
-                            <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                                <span class="w-3 h-6 rounded-sm ${meta.color}"></span>
-                                ${meta.name}
-                            </h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="glass rounded-2xl p-5 flex flex-col h-full border-t-4 ${meta.border}">
-                                    <h4 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                                        <i class="ph ph-arrow-circle-up ${meta.text} text-xl"></i> Direction 1 (UP)
-                                    </h4>
-                                    <div id="up-${result.lineCode}" class="flex-1 space-y-4"></div>
-                                </div>
-                                <div class="glass rounded-2xl p-5 flex flex-col h-full border-t-4 ${meta.border}">
-                                    <h4 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                                        <i class="ph ph-arrow-circle-down ${meta.text} text-xl"></i> Direction 2 (DOWN)
-                                    </h4>
-                                    <div id="down-${result.lineCode}" class="flex-1 space-y-4"></div>
-                                </div>
-                            </div>
-                        </div>
+                    const sectionWrapper = document.createElement('div');
+                    sectionWrapper.className = "space-y-4";
+                    sectionWrapper.innerHTML = `
+                        <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                            <span class="w-3 h-6 rounded-sm ${meta.color}"></span>
+                            ${meta.name}
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="grid-${result.lineCode}"></div>
                     `;
-                    resultsContainer.insertAdjacentHTML('beforeend', sectionHTML);
-
-                    const upDiv = document.getElementById(`up-${result.lineCode}`);
-                    const downDiv = document.getElementById(`down-${result.lineCode}`);
+                    resultsContainer.appendChild(sectionWrapper);
+                    
+                    const grid = document.getElementById(`grid-${result.lineCode}`);
 
                     if (!result.success) {
-                        upDiv.innerHTML = `<p class="text-red-400 text-sm text-center py-8">API Error / No Data</p>`;
-                        downDiv.innerHTML = `<p class="text-red-400 text-sm text-center py-8">API Error / No Data</p>`;
+                        grid.innerHTML = `<div class="col-span-full glass rounded-xl p-6 text-center text-red-400 border-t-4 ${meta.border}">API Error or End of Service</div>`;
                         return;
                     }
 
-                    const stationData = result.data.data[`${result.lineCode}-${sta}`];
-                    if (stationData) {
-                        lastUpdateTime = stationData.curr_time.split(' ')[1];
-                        const isTerminal = STATIONS.find(s => s.line === result.lineCode && s.code === sta)?.isTerminal || false;
-                        
-                        renderDirection(stationData.UP || [], upDiv, isTerminal);
-                        renderDirection(stationData.DOWN || [], downDiv, isTerminal);
-                    } else {
-                        upDiv.innerHTML = `<p class="text-slate-500 text-sm text-center py-8">No current schedule</p>`;
-                        downDiv.innerHTML = `<p class="text-slate-500 text-sm text-center py-8">No current schedule</p>`;
+                    if (result.type === 'HR') {
+                        // Heavy Rail parsing
+                        const stationData = result.data.data[`${result.lineCode}-${result.stn.code}`];
+                        if (stationData) {
+                            if(stationData.curr_time) lastUpdateTime = stationData.curr_time.split(' ')[1];
+                            renderPlatform(grid, meta, "Direction 1 (UP)", 'ph-arrow-circle-up', stationData.UP || [], result.stn.isTerminal, 'HR');
+                            renderPlatform(grid, meta, "Direction 2 (DOWN)", 'ph-arrow-circle-down', stationData.DOWN || [], result.stn.isTerminal, 'HR');
+                        } else {
+                            grid.innerHTML = `<div class="col-span-full glass p-6 text-center text-slate-400">No scheduled trains.</div>`;
+                        }
+                    } else if (result.type === 'LRT') {
+                        // Light Rail parsing
+                        const platforms = result.data.platform_list || [];
+                        if (platforms.length === 0) {
+                            grid.innerHTML = `<div class="col-span-full glass p-6 text-center text-slate-400">No scheduled Light Rail trains.</div>`;
+                        } else {
+                            platforms.forEach(plat => {
+                                renderPlatform(grid, meta, `Platform ${plat.platform_id}`, 'ph-train-track', plat.route_list || [], result.stn.isTerminal, 'LRT');
+                            });
+                        }
                     }
                 });
 
-                updateStatus(lastUpdateTime ? `Live Data Updated at ${lastUpdateTime}` : 'Live Data Synchronized', 'green');
+                updateStatus(`Live Data Synchronized at ${lastUpdateTime}`, 'green');
 
             } catch (error) {
                 console.error(error);
-                updateStatus('Critical failure loading station data.', 'red');
+                updateStatus('Critical failure loading network data.', 'red');
             } finally {
                 startCountdown();
             }
         }
 
-        function calculateLoad(trains, index, isTerminal) {
+        function calculateLoadHR(trains, index, isTerminal) {
             const t1 = parseInt(trains[index].ttnt) || 0;
-            let loadFactor = 0;
-
-            if (isTerminal) {
-                loadFactor = Math.max(5, 25 - (t1 * 4));
-            } else {
-                let t2 = 0;
-                if (index + 1 < trains.length) {
-                    t2 = parseInt(trains[index + 1].ttnt) || (t1 + 3);
-                } else {
-                    t2 = t1 + 3; 
-                }
-                const hAct = Math.max(0, t2 - t1); 
-                loadFactor = 20 + (hAct * 6);
-            }
-
+            let loadFactor = isTerminal ? Math.max(5, 25 - (t1 * 4)) : 20 + (Math.max(0, (index + 1 < trains.length ? parseInt(trains[index + 1].ttnt) || (t1 + 3) : t1 + 3) - t1) * 6);
             return Math.min(100, Math.max(0, Math.round(loadFactor)));
         }
 
-        function renderDirection(trains, container, isTerminal) {
-            container.innerHTML = '';
+        function calculateLoadLRT(train) {
+            // LRT load estimation based on time strings and train length (1 vs 2 cars)
+            let mins = 0;
+            if (train.time_en.includes('min')) {
+                mins = parseInt(train.time_en) || 1;
+            }
+            let load = 60 - (mins * 5); // base
+            if (train.train_length === 1) load += 25; // 1-car trains get crowded faster
+            return Math.min(100, Math.max(10, load));
+        }
+
+        function renderPlatform(grid, meta, title, iconClass, trains, isTerminal, type) {
+            const container = document.createElement('div');
+            container.className = `glass rounded-2xl p-5 flex flex-col h-full border-t-4 ${meta.border}`;
+            
+            let html = `
+                <h4 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <i class="ph ${iconClass} ${meta.text} text-xl"></i> ${title}
+                </h4>
+                <div class="flex-1 space-y-4">
+            `;
 
             if (trains.length === 0) {
-                container.innerHTML = `<div class="bg-slate-800/50 rounded-xl p-4 text-center border border-slate-700/50">
-                    <p class="text-slate-400 text-sm">No trains scheduled.</p>
-                </div>`;
-                return;
+                html += `<div class="bg-slate-800/50 rounded-xl p-4 text-center border border-slate-700/50 text-slate-400 text-sm">No trains scheduled.</div>`;
+            } else {
+                trains.forEach((train, index) => {
+                    let destName, minText, platText, loadFactor;
+
+                    if (type === 'HR') {
+                        const destStation = STATIONS.find(s => s.code === train.dest && s.line !== 'LRT');
+                        destName = destStation ? destStation.name : train.dest;
+                        minText = train.ttnt === "0" ? "Arriving" : `${train.ttnt} min`;
+                        platText = `Platform ${train.plat}`;
+                        loadFactor = calculateLoadHR(trains, index, isTerminal);
+                    } else {
+                        // LRT
+                        destName = `${train.route_no} ${train.dest_en}`;
+                        minText = train.time_en === "-" ? "Departing" : train.time_en;
+                        platText = `${train.train_length} Car${train.train_length > 1 ? 's' : ''}`;
+                        loadFactor = calculateLoadLRT(train);
+                    }
+                    
+                    let barColor = 'bg-emerald-500';
+                    let loadIcon = 'ph-users text-emerald-400';
+                    let loadText = 'Comfortable';
+
+                    if (loadFactor >= 85) { barColor = 'bg-red-500'; loadIcon = 'ph-warning text-red-400'; loadText = 'Crowded'; } 
+                    else if (loadFactor >= 60) { barColor = 'bg-yellow-500'; loadIcon = 'ph-users text-yellow-400'; loadText = 'Standing Room'; }
+
+                    html += `
+                        <div class="bg-slate-800/80 rounded-xl p-4 border border-slate-700 shadow-sm relative overflow-hidden transition hover:border-slate-500">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">To</p>
+                                    <p class="text-lg font-bold text-white">${destName}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-2xl font-black text-white">${minText}</p>
+                                    <p class="text-xs text-slate-400">${platText}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-2 space-y-1">
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="flex items-center gap-1 text-slate-300">
+                                        <i class="ph ${loadIcon}"></i> ${loadText}
+                                    </span>
+                                    <span class="font-bold text-slate-200">${loadFactor}%</span>
+                                </div>
+                                <div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden border border-slate-700">
+                                    <div class="${barColor} h-2.5 rounded-full load-bar" style="width: ${loadFactor}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
             }
-
-            trains.forEach((train, index) => {
-                const loadFactor = calculateLoad(trains, index, isTerminal);
-                
-                let barColor = 'bg-emerald-500';
-                let icon = 'ph-users text-emerald-400';
-                let loadText = 'Comfortable';
-
-                if (loadFactor >= 85) {
-                    barColor = 'bg-red-500';
-                    icon = 'ph-warning text-red-400';
-                    loadText = 'Crowded';
-                } else if (loadFactor >= 60) {
-                    barColor = 'bg-yellow-500';
-                    icon = 'ph-users text-yellow-400';
-                    loadText = 'Standing (Ends Open)';
-                }
-
-                const destStation = STATIONS.find(s => s.code === train.dest);
-                const destName = destStation ? destStation.name : train.dest;
-                const minText = train.ttnt === "0" ? "Arriving" : `${train.ttnt} min`;
-
-                const cardHTML = `
-                    <div class="bg-slate-800/80 rounded-xl p-4 border border-slate-700 shadow-sm relative overflow-hidden group hover:border-slate-600 transition">
-                        <div class="flex justify-between items-start mb-3">
-                            <div>
-                                <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">To</p>
-                                <p class="text-lg font-bold text-white">${destName}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-2xl font-black text-white">${minText}</p>
-                                <p class="text-xs text-slate-400">Platform ${train.plat}</p>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-2 space-y-1">
-                            <div class="flex justify-between items-center text-xs">
-                                <span class="flex items-center gap-1 text-slate-300">
-                                    <i class="ph ${icon}"></i> 
-                                    Est. Load: ${loadText}
-                                </span>
-                                <span class="font-bold text-slate-200">${loadFactor}%</span>
-                            </div>
-                            <div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden border border-slate-700">
-                                <div class="${barColor} h-2.5 rounded-full load-bar" style="width: ${loadFactor}%"></div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                container.insertAdjacentHTML('beforeend', cardHTML);
-            });
+            html += `</div>`;
+            container.innerHTML = html;
+            grid.appendChild(container);
         }
 
         document.addEventListener('DOMContentLoaded', init);
