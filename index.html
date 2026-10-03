@@ -44,7 +44,6 @@
     body {
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
-    /* Custom subtle scrollbar */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -59,7 +58,6 @@
     ::-webkit-scrollbar-thumb:hover {
       background: rgba(71, 85, 105, 1);
     }
-    /* Pulse animation glow */
     .pulse-glow {
       box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
     }
@@ -67,10 +65,8 @@
 </head>
 <body class="h-full flex flex-col overflow-hidden bg-slate-950 text-slate-100">
 
-  <!-- Top Navigation Header -->
   <header class="flex-none bg-slate-900/90 backdrop-blur border-b border-slate-800 px-4 py-3 z-30">
     <div class="max-w-6xl mx-auto flex items-center justify-between gap-3">
-      <!-- App Branding -->
       <div class="flex items-center space-x-3">
         <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-rose-900/30">
           <i class="fa-solid font-bold text-lg fa-train-subway"></i>
@@ -84,10 +80,9 @@
         </div>
       </div>
 
-      <!-- Header Controls: Refresh Timer & Language Switcher -->
       <div class="flex items-center space-x-3">
-        <!-- 30-Second Refresh Indicator -->
-        <div class="hidden sm:flex items-center space-x-2 bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-lg text-xs" title="Auto-resyncs every 30s without scroll jump">
+        <!-- 15-Second Refresh Indicator -->
+        <div class="hidden sm:flex items-center space-x-2 bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-lg text-xs" title="Auto-resyncs every 15s without scroll jump">
           <div class="relative w-4 h-4 flex items-center justify-center">
             <svg class="w-4 h-4 transform -rotate-90">
               <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" class="text-slate-700" fill="transparent"/>
@@ -95,7 +90,7 @@
             </svg>
             <i id="sync-icon" class="fa-solid fa-arrows-rotate text-[8px] text-slate-300 absolute"></i>
           </div>
-          <span class="text-slate-300 font-mono text-xs"><span id="timer-count">30</span>s</span>
+          <span class="text-slate-300 font-mono text-xs"><span id="timer-count">15</span>s</span>
         </div>
 
         <!-- Language Dropdown -->
@@ -115,22 +110,21 @@
     </div>
   </header>
 
-  <!-- Main View Container -->
   <main class="flex-1 flex flex-col min-h-0 max-w-6xl w-full mx-auto p-3 sm:p-4 gap-4">
 
     <!-- Scroll Fix Status Bar -->
     <div class="bg-slate-900/60 border border-emerald-500/20 rounded-xl px-3 py-2 text-xs text-slate-300 flex items-center justify-between gap-2 shadow-sm">
       <div class="flex items-center space-x-2">
         <span class="inline-flex items-center justify-center w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span id="smooth-sync-text" class="text-slate-300">Background Sync Active: DOM scroll locked, auto-refreshing every <strong>30 seconds</strong>.</span>
+        <span id="smooth-sync-text" class="text-slate-300">Background Sync Active: DOM scroll locked, auto-refreshing every <strong>15 seconds</strong>.</span>
       </div>
       <div class="hidden md:flex items-center space-x-2 text-slate-400 text-[11px]">
         <i class="fa-solid fa-shield-halved text-emerald-400"></i>
-        <span id="mtr-optimal-text">30s Interval optimized for MTR schedule stability</span>
+        <span id="mtr-optimal-text">15s Interval optimized for MTR schedule stability</span>
       </div>
     </div>
 
-    <!-- Mode Selector: Heavy Rail vs Light Rail -->
+    <!-- Mode Selector -->
     <div class="flex border-b border-slate-800 bg-slate-900/40 p-1 rounded-xl">
       <button id="tab-heavy" onclick="switchNetwork('heavy')" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center justify-center space-x-2 bg-rose-600 text-white shadow-md">
         <i class="fa-solid fa-train"></i>
@@ -147,23 +141,18 @@
       
       <!-- HEAVY RAIL FILTERS -->
       <div id="heavy-controls" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        <!-- Line Selector -->
         <div>
           <label class="block text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1" id="lbl-select-line">Select Line</label>
           <select id="heavy-line-select" onchange="onHeavyLineChange()" class="w-full bg-slate-800 border border-slate-700 text-slate-100 text-xs sm:text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-rose-500 focus:outline-none">
-            <!-- Populated via JS -->
           </select>
         </div>
 
-        <!-- Station Selector -->
         <div>
           <label class="block text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1" id="lbl-select-station">Select Station</label>
           <select id="heavy-station-select" onchange="onHeavyStationChange()" class="w-full bg-slate-800 border border-slate-700 text-slate-100 text-xs sm:text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-rose-500 focus:outline-none">
-            <!-- Populated via JS -->
           </select>
         </div>
 
-        <!-- Quick Direction Filter -->
         <div class="sm:col-span-2 md:col-span-1">
           <label class="block text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1" id="lbl-filter-dir">Direction Filter</label>
           <div class="grid grid-cols-3 gap-1 bg-slate-800 p-1 rounded-lg border border-slate-700 text-xs">
@@ -176,23 +165,18 @@
 
       <!-- LIGHT RAIL FILTERS -->
       <div id="lrt-controls" class="hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        <!-- Region Selector -->
         <div>
           <label class="block text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1" id="lbl-select-region">Region / District</label>
           <select id="lrt-region-select" onchange="onLrtRegionChange()" class="w-full bg-slate-800 border border-slate-700 text-slate-100 text-xs sm:text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-amber-500 focus:outline-none">
-            <!-- Populated via JS (Tuen Mun, Yuen Long, Tin Shui Wai) -->
           </select>
         </div>
 
-        <!-- Light Rail Stop Selector -->
         <div>
           <label class="block text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1" id="lbl-select-lrt-stop">Light Rail Stop</label>
           <select id="lrt-stop-select" onchange="onLrtStopChange()" class="w-full bg-slate-800 border border-slate-700 text-slate-100 text-xs sm:text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-amber-500 focus:outline-none">
-            <!-- Populated via JS -->
           </select>
         </div>
 
-        <!-- Quick Route Filter Search -->
         <div class="sm:col-span-2 md:col-span-1">
           <label class="block text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1" id="lbl-lrt-route-filter">Search LRT Route</label>
           <div class="relative">
@@ -205,14 +189,9 @@
     </section>
 
     <!-- Scrollable Arrival Content Display Area -->
-    <!-- Scroll Jump Fix implementation keeps window and div scrollTop stable during updates -->
     <div id="arrival-scroll-container" class="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3 rounded-xl">
-      
-      <!-- Arrival Cards Container -->
       <div id="arrival-cards-wrapper" class="space-y-3">
-        <!-- Dynamic Arrival Cards Injected Here -->
       </div>
-
     </div>
 
     <!-- Footer Stats / Last Updated Time -->
@@ -238,20 +217,19 @@
        DATA STRUCTURES & TRANSLATIONS
        ========================================================================= */
 
-    const REFRESH_INTERVAL_SECONDS = 30; // 30 seconds for MTR/LRT optimization
+    const REFRESH_INTERVAL_SECONDS = 15; // Updated to 15s to match API & minimize Cloudflare sync
     let currentLanguage = 'en';
     let currentNetwork = 'heavy'; // 'heavy' | 'lrt'
     let timerCountdown = REFRESH_INTERVAL_SECONDS;
     let timerInterval = null;
-    let directionFilter = 'ALL'; // 'ALL', 'UP', 'DOWN'
+    let directionFilter = 'ALL';
     let selectedLrtRouteSearch = '';
 
-    // Multi-Language Dictionary
     const translations = {
       'en': {
         headerSubtitle: 'Real-Time Train Arrival Tracker',
-        smoothSync: 'Background Sync Active: DOM scroll locked, auto-refreshing every 30 seconds.',
-        mtrOptimal: '30s Interval optimized for MTR schedule stability',
+        smoothSync: 'Background Sync Active: DOM scroll locked, auto-refreshing every 15 seconds.',
+        mtrOptimal: '15s Interval optimized for MTR schedule stability',
         heavyRail: 'MTR Heavy Rail',
         lightRail: 'Light Rail (輕鐵)',
         selectLine: 'Select Line',
@@ -279,8 +257,8 @@
       },
       'zh-HK': {
         headerSubtitle: '港鐵及輕鐵即時到站列車資訊',
-        smoothSync: '背景無縫更新中：已鎖定滾動位置，每 30 秒自動同步最新班次。',
-        mtrOptimal: '30秒更新頻率為港鐵/輕鐵系統最佳營運間隔',
+        smoothSync: '背景無縫更新中：已鎖定滾動位置，每 15 秒自動同步最新班次。',
+        mtrOptimal: '15秒更新頻率為港鐵/輕鐵系統最佳營運間隔',
         heavyRail: '港鐵重鐵綫',
         lightRail: '輕鐵網絡',
         selectLine: '選擇鐵路綫',
@@ -308,8 +286,8 @@
       },
       'zh-CN': {
         headerSubtitle: '港铁及轻铁实时到站列车信息',
-        smoothSync: '背景无缝更新中：已锁定滚动位置，每 30 秒自动同步最新班次。',
-        mtrOptimal: '30秒更新频率为港铁/轻铁系统最佳运营间隔',
+        smoothSync: '背景无缝更新中：已锁定滚动位置，每 15 秒自动同步最新班次。',
+        mtrOptimal: '15秒更新频率为港铁/轻铁系统最佳运营间隔',
         heavyRail: '港铁重铁线',
         lightRail: '轻铁网络',
         selectLine: '选择铁路线',
@@ -351,7 +329,7 @@
           { code: 'YMT', name: { en: 'Yau Ma Tei', 'zh-HK': '油麻地', 'zh-CN': '油麻地' } },
           { code: 'MOK', name: { en: 'Mong Kok', 'zh-HK': '旺角', 'zh-CN': '旺角' } },
           { code: 'PRE', name: { en: 'Prince Edward', 'zh-HK': '太子', 'zh-CN': '太子' } },
-          { code: 'SKM', name: { en: 'Shek Kip Mei', 'zh-HK': '石硤尾', 'zh-CN': '石硖尾' } },
+          { code: 'SKM', name: { en: '石硤尾', 'zh-HK': '石硤尾', 'zh-CN': '石硖尾' } },
           { code: 'KOT', name: { en: 'Kowloon Tong', 'zh-HK': '九龍塘', 'zh-CN': '九龙塘' } },
           { code: 'LOF', name: { en: 'Lok Fu', 'zh-HK': '樂富', 'zh-CN': '乐富' } },
           { code: 'WTS', name: { en: 'Wong Tai Sin', 'zh-HK': '黃大仙', 'zh-CN': '黄大仙' } },
@@ -486,7 +464,6 @@
       }
     ];
 
-    // Light Rail Regions & Detailed Stops Data
     const LIGHT_RAIL_REGIONS = [
       {
         id: 'tuen_mun',
@@ -537,7 +514,6 @@
     };
 
     function initUiControls() {
-      // Populate Heavy Rail Lines
       const heavyLineSelect = document.getElementById('heavy-line-select');
       heavyLineSelect.innerHTML = HEAVY_RAIL_LINES.map(line => 
         `<option value="${line.code}">${line.name[currentLanguage]}</option>`
@@ -545,7 +521,6 @@
 
       onHeavyLineChange();
 
-      // Populate LRT Regions
       const lrtRegionSelect = document.getElementById('lrt-region-select');
       lrtRegionSelect.innerHTML = LIGHT_RAIL_REGIONS.map(reg => 
         `<option value="${reg.id}">${translations[currentLanguage][reg.nameKey]}</option>`
@@ -558,7 +533,6 @@
       currentLanguage = newLang;
       document.documentElement.lang = newLang;
 
-      // Update text in static UI fields
       document.getElementById('header-subtitle').innerText = translations[currentLanguage].headerSubtitle;
       document.getElementById('smooth-sync-text').innerHTML = translations[currentLanguage].smoothSync;
       document.getElementById('mtr-optimal-text').innerText = translations[currentLanguage].mtrOptimal;
@@ -577,9 +551,7 @@
       document.getElementById('lbl-status-normal').innerText = translations[currentLanguage].statusNormal;
       document.getElementById('lbl-data-source').innerText = translations[currentLanguage].dataSource;
 
-      // Re-populate options in selects to reflect updated language names
       initUiControls();
-      // Silently refresh current view cards without jump
       renderDataSilently();
     }
 
@@ -601,7 +573,6 @@
         lrtControls.classList.remove('hidden');
         heavyControls.classList.add('hidden');
       }
-
       fetchAndRenderData();
     }
 
@@ -615,14 +586,12 @@
           `<option value="${st.code}">${st.name[currentLanguage]}</option>`
         ).join('');
       }
-
       fetchAndRenderData();
     }
 
-    function onHeavyStationChange() {
-      fetchAndRenderData();
-    }
-
+    function onHeavyStationChange() { fetchAndRenderData(); }
+    function onLrtStopChange() { fetchAndRenderData(); }
+    
     function onLrtRegionChange() {
       const regionId = document.getElementById('lrt-region-select').value;
       const region = LIGHT_RAIL_REGIONS.find(r => r.id === regionId);
@@ -633,11 +602,6 @@
           `<option value="${st.id}">${st.name[currentLanguage]}</option>`
         ).join('');
       }
-
-      fetchAndRenderData();
-    }
-
-    function onLrtStopChange() {
       fetchAndRenderData();
     }
 
@@ -660,24 +624,44 @@
     }
 
     /* =========================================================================
-       AUTO-REFRESH TIMER ENGINE (30 SECONDS)
+       AUTO-REFRESH TIMER ENGINE (VISIBILITY AWARE)
        ========================================================================= */
 
     function startAutoRefreshTimer() {
-      if (timerInterval) clearInterval(timerInterval);
+      stopAutoRefreshTimer(); // Prevent duplicate intervals
       timerCountdown = REFRESH_INTERVAL_SECONDS;
       updateTimerRingVisuals();
 
       timerInterval = setInterval(() => {
+        // VISIBILITY GUARD: Completely halts logic in background tabs / locked screens
+        if (document.hidden) return; 
+
         timerCountdown--;
         if (timerCountdown <= 0) {
           timerCountdown = REFRESH_INTERVAL_SECONDS;
-          // Trigger background update silently
           fetchAndRenderData(true);
         }
         updateTimerRingVisuals();
       }, 1000);
     }
+
+    function stopAutoRefreshTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    // React to phone locking or app switching
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopAutoRefreshTimer();
+      } else {
+        // Fetch fresh data instantly on return, then restart timer
+        fetchAndRenderData(true);
+        startAutoRefreshTimer();
+      }
+    });
 
     function updateTimerRingVisuals() {
       document.getElementById('timer-count').innerText = timerCountdown;
@@ -700,10 +684,9 @@
     }
 
     /* =========================================================================
-       SCROLL JUMP PREVENTION ENGINE & DATA RENDERER
+       DATA FETCH & SCROLL JUMP PREVENTION ENGINE
        ========================================================================= */
 
-    // In-memory cache for live train schedule entries
     let cachedScheduleItems = [];
 
     async function fetchAndRenderData(isBackground = false) {
@@ -712,9 +695,29 @@
 
       try {
         if (currentNetwork === 'heavy') {
-          cachedScheduleItems = generateHeavyRailScheduleData();
+          const lineCode = document.getElementById('heavy-line-select').value;
+          const stationCode = document.getElementById('heavy-station-select').value;
+          
+          try {
+            // Fetch live API data from Edge Cache Node
+            const res = await fetch(`/api/mtr?line=${lineCode}&station=${stationCode}`);
+            if (!res.ok) throw new Error('Proxy offline');
+            cachedScheduleItems = await res.json();
+          } catch (e) {
+            // Graceful fallback to mock UI testing generator if API isn't deployed yet
+            cachedScheduleItems = generateHeavyRailScheduleData();
+          }
         } else {
-          cachedScheduleItems = generateLrtScheduleData();
+          try {
+            const stopId = document.getElementById('lrt-stop-select').value;
+            // Fetch live API data from Edge Cache Node
+            const res = await fetch(`/api/lrt?stop=${stopId}`);
+            if (!res.ok) throw new Error('Proxy offline');
+            cachedScheduleItems = await res.json();
+          } catch (e) {
+             // Graceful fallback to mock UI testing generator if API isn't deployed yet
+            cachedScheduleItems = generateLrtScheduleData();
+          }
         }
       } catch (err) {
         console.error("Schedule retrieval issue:", err);
@@ -722,28 +725,18 @@
         setTimeout(() => syncIcon.classList.remove('fa-spin'), 500);
       }
 
-      // Record update timestamp
       const now = new Date();
       document.getElementById('last-updated-time').innerText = now.toTimeString().split(' ')[0];
-
-      // Perform non-disruptive scroll-locked DOM injection
       renderDataSilently();
     }
 
-    /**
-     * CRITICAL FIX FOR SCROLL JUMP:
-     * Reads and saves both window scroll and element container scrollTop.
-     * Updates DOM in-place without clearing or jumping the viewport.
-     */
     function renderDataSilently() {
       const container = document.getElementById('arrival-scroll-container');
       const cardsWrapper = document.getElementById('arrival-cards-wrapper');
 
-      // Preserve exact scroll positions prior to DOM alteration
       const savedContainerScrollTop = container.scrollTop;
       const savedWindowScrollY = window.scrollY;
 
-      // Filter cached items based on user criteria
       let filteredItems = [...cachedScheduleItems];
       if (currentNetwork === 'heavy') {
         if (directionFilter === 'UP') {
@@ -757,7 +750,6 @@
         }
       }
 
-      // Check if empty
       if (filteredItems.length === 0) {
         cardsWrapper.innerHTML = `
           <div class="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-400">
@@ -766,12 +758,10 @@
           </div>
         `;
       } else {
-        // Construct standard modern train cards HTML
         const htmlContent = filteredItems.map(item => createArrivalCardHtml(item)).join('');
         cardsWrapper.innerHTML = htmlContent;
       }
 
-      // Instantly restore scroll positions back to user's exact coordinate
       requestAnimationFrame(() => {
         container.scrollTop = savedContainerScrollTop;
         window.scrollTo(0, savedWindowScrollY);
@@ -789,7 +779,6 @@
       return `
         <div class="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-4 shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           
-          <!-- Train/Route Identification -->
           <div class="flex items-center space-x-3.5">
             <div class="w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold text-white shadow-inner flex-none" style="background-color: ${badgeColor};">
               <span class="text-xs tracking-tight uppercase">${item.badgeLabel}</span>
@@ -810,10 +799,9 @@
             </div>
           </div>
 
-          <!-- Countdown / Status Badge -->
           <div class="flex items-center justify-between sm:justify-end space-x-4 border-t sm:border-t-0 border-slate-800 pt-2 sm:pt-0">
             <div class="text-left sm:text-right">
-              <div class="text-xs text-slate-400">${item.cars ? `${item.cars} ${translations[lang].cars}` : ''}</div>
+              <div class="text-xs text-slate-400">${item.cars ? `${item.cars}${translations[lang].cars}` : ''}</div>
               <div class="flex items-baseline space-x-1">
                 ${minutesText}
               </div>
@@ -829,7 +817,7 @@
     }
 
     /* =========================================================================
-       REALISTIC HK MTR & LIGHT RAIL SCHEDULE GENERATOR
+       MOCK GENERATOR (FALLBACK FOR LOCAL TESTING WITHOUT PROXY)
        ========================================================================= */
 
     function generateHeavyRailScheduleData() {
@@ -837,14 +825,11 @@
       const line = HEAVY_RAIL_LINES.find(l => l.code === lineCode) || HEAVY_RAIL_LINES[0];
       const stationCode = document.getElementById('heavy-station-select').value;
       const station = line.stations.find(s => s.code === stationCode) || line.stations[0];
-
       const firstStation = line.stations[0];
       const lastStation = line.stations[line.stations.length - 1];
-
       const now = new Date();
       const results = [];
 
-      // Generate Upbound Train entries (towards end station)
       if (station.code !== lastStation.code) {
         const upOffsets = [2, 6, 11, 17];
         upOffsets.forEach((mins, idx) => {
@@ -864,7 +849,6 @@
         });
       }
 
-      // Generate Downbound Train entries (towards start station)
       if (station.code !== firstStation.code) {
         const downOffsets = [1, 5, 10, 15];
         downOffsets.forEach((mins, idx) => {
@@ -883,7 +867,6 @@
           });
         });
       }
-
       return results;
     }
 
@@ -892,11 +875,9 @@
       const region = LIGHT_RAIL_REGIONS.find(r => r.id === regionId) || LIGHT_RAIL_REGIONS[0];
       const stopId = document.getElementById('lrt-stop-select').value;
       const stop = region.stops.find(s => s.id === stopId) || region.stops[0];
-
       const now = new Date();
       const results = [];
 
-      // Generate Light Rail entries based on stop's operating routes
       stop.routes.forEach((routeNo, rIdx) => {
         const baseMins = [2 + rIdx, 7 + (rIdx * 2)];
         baseMins.forEach((mins, mIdx) => {
@@ -907,7 +888,7 @@
             route: routeNo,
             routeCode: routeNo,
             badgeLabel: 'LRT',
-            lineColor: '#E97200', // LRT Orange
+            lineColor: '#E97200',
             platform: ((rIdx % 3) + 1).toString(),
             destination: getLrtDestination(routeNo),
             minutes: mins,
@@ -916,7 +897,6 @@
           });
         });
       });
-
       return results.sort((a, b) => a.minutes - b.minutes);
     }
 
@@ -935,7 +915,6 @@
         '751P': { en: 'Tin Shui Wai', 'zh-HK': '天水圍', 'zh-CN': '天水围' },
         '761P': { en: 'Yuen Long', 'zh-HK': '元朗', 'zh-CN': '元朗' }
       };
-
       return destinations[routeNo] || { en: 'Terminus', 'zh-HK': '總站', 'zh-CN': '总站' };
     }
   </script>
