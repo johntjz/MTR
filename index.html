@@ -190,14 +190,17 @@
     </div>
 
     <script>
-        // Core State variables - "Single Source of Truth" immune to browser UI resets
+        // Core State variables
         let currentLang = 'tc'; 
         let currentNetwork = 'HR'; 
-        let activeLineCode = 'TML';
-        let activeStationKey = 'WKS';
-        
         let isInitialLoad = true; 
         let lrtSortMode = 'route'; 
+
+        // Network State Tracking - Solves the auto-reset bug by remembering selections independently
+        let savedState = {
+            'HR': { line: 'TML', station: 'WKS' },
+            'LRT': { line: 'LRT_TM', station: 'LRT_001' }
+        };
 
         // Translation dictionary
         const TRANSLATIONS = {
@@ -512,7 +515,7 @@
             { key: 'KAT', line: 'TML', code: 'KAT', name: { en: 'Kai Tak', tc: '啟德', sc: '启德' }, lat: 22.3323, lng: 114.1966, isTerminal: false },
             { key: 'SUW', line: 'TML', code: 'SUW', name: { en: 'Sung Wong Toi', tc: '宋皇臺', sc: '宋皇台' }, lat: 22.3275, lng: 114.1906, isTerminal: false },
             { key: 'TKW', line: 'TML', code: 'TKW', name: { en: 'To Kwa Wan', tc: '土瓜灣', sc: '土瓜湾' }, lat: 22.3168, lng: 114.1887, isTerminal: false },
-            { key: 'HOM', line: 'TML', code: 'HOM', name: { en: 'Ho Man Tin', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
+            { key: 'HOM', line: 'TML', code: 'HOM', name: { en: '何文田', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
             { key: 'HUH', line: 'TML', code: 'HUH', name: { en: 'Hung Hom', tc: '紅磡', sc: '红磡' }, lat: 22.3031, lng: 114.1818, isTerminal: false },
             { key: 'ETS', line: 'TML', code: 'ETS', name: { en: 'East Tsim Sha Tsui', tc: '尖東', sc: '尖东' }, lat: 22.2963, lng: 114.1748, isTerminal: false },
             { key: 'AUS', line: 'TML', code: 'AUS', name: { en: 'Austin', tc: '柯士甸', sc: '柯士甸' }, lat: 22.3045, lng: 114.1661, isTerminal: false },
@@ -588,7 +591,6 @@
             { key: 'YUL_TML', line: 'LRT_YL', code: '600', name: { en: 'Yuen Long', tc: '元朗', sc: '元朗' }, lat: 22.4462, lng: 114.0347, isTerminal: true }
         ];
 
-        // Station Code to Translated Name lookup table for Heavy Rail destinations
         const HEAVY_DESTINATIONS = {
             'HOK': { en: 'Hong Kong', tc: '香港', sc: '香港' },
             'KOW': { en: 'Kowloon', tc: '九龍', sc: '九龙' },
@@ -750,7 +752,7 @@
                 '柴': '柴', '將': '将', '軍': '军', '寶': '宝', '琳': '琳', '會': '会', '展': '展', '紅': '红',
                 '磡': '磡', '場': '场', '學': '学', '墟': '墟', '粉': '粉', '羅': '罗', '落': '落', '馬': '马',
                 '洲': '洲', '海': '海', '洋': '洋', '島': '岛', '烏': '乌', '溪': '溪', '沙': '沙', '鞍': '鞍',
-                '恆': '恒', '車': '车', '公': '公', '廟': '庙', '顯': '显', '徑': '径', '啟': '启', '德': '德',
+                '恆': '恒', '車': '公', '廟': '庙', '顯': '显', '徑': '径', '啟': '启', '德': '德',
                 '瓜': '瓜', '柯': '柯', '士': '士', '甸': '甸', '錦': '锦', '屏': '屏', '濕': '湿', '座': '座',
                 '翠': '翠', '頌': '颂', '恒': '恒'
             };
@@ -788,13 +790,15 @@
             currentNetwork = net;
             updateNetworkToggleUI(net);
             
-            activeLineCode = net === 'HR' ? 'TML' : 'LRT_TM';
             populateLineDropdown();
-            lineSelect.value = activeLineCode;
+            lineSelect.value = savedState[currentNetwork].line;
             
-            populateStationDropdown(activeLineCode);
-            activeStationKey = stationSelect.options[0].value;
-            stationSelect.value = activeStationKey;
+            populateStationDropdown(savedState[currentNetwork].line);
+            let opts = Array.from(stationSelect.options).map(o => o.value);
+            if (!opts.includes(savedState[currentNetwork].station) && opts.length > 0) {
+                savedState[currentNetwork].station = opts[0];
+            }
+            stationSelect.value = savedState[currentNetwork].station;
             
             isInitialLoad = true;
             fetchRealTimeData();
@@ -805,25 +809,25 @@
             updateNetworkToggleUI(currentNetwork);
             
             populateLineDropdown();
-            lineSelect.value = activeLineCode;
-            populateStationDropdown(activeLineCode);
+            lineSelect.value = savedState[currentNetwork].line;
+            populateStationDropdown(savedState[currentNetwork].line);
             
-            if (stationSelect.options.length > 0) {
-                const preSelectObj = STATIONS.find(s => s.code === 'TUM' && s.line === 'TML');
-                activeStationKey = preSelectObj ? preSelectObj.key : stationSelect.options[0].value;
-                stationSelect.value = activeStationKey;
+            let opts = Array.from(stationSelect.options).map(o => o.value);
+            if (!opts.includes(savedState[currentNetwork].station) && opts.length > 0) {
+                savedState[currentNetwork].station = opts[0];
             }
+            stationSelect.value = savedState[currentNetwork].station;
 
             lineSelect.addEventListener('change', (e) => {
-                activeLineCode = e.target.value;
-                populateStationDropdown(activeLineCode);
-                activeStationKey = stationSelect.value;
+                savedState[currentNetwork].line = e.target.value;
+                populateStationDropdown(savedState[currentNetwork].line);
+                savedState[currentNetwork].station = stationSelect.value;
                 isInitialLoad = true;
                 fetchRealTimeData();
             });
 
             stationSelect.addEventListener('change', (e) => {
-                activeStationKey = e.target.value;
+                savedState[currentNetwork].station = e.target.value;
                 isInitialLoad = true;
                 fetchRealTimeData();
             });
@@ -862,8 +866,8 @@
 
             updateNetworkToggleUI(currentNetwork);
             populateLineDropdown();
-            lineSelect.value = activeLineCode;
-            populateStationDropdown(activeLineCode, activeStationKey);
+            lineSelect.value = savedState[currentNetwork].line;
+            populateStationDropdown(savedState[currentNetwork].line, savedState[currentNetwork].station);
 
             isInitialLoad = true;
             fetchRealTimeData();
@@ -948,11 +952,11 @@
                             populateLineDropdown();
                         }
                         
-                        activeLineCode = nearest.line;
-                        activeStationKey = nearest.key;
+                        savedState[currentNetwork].line = nearest.line;
+                        savedState[currentNetwork].station = nearest.key;
                         
-                        lineSelect.value = activeLineCode;
-                        populateStationDropdown(activeLineCode, activeStationKey);
+                        lineSelect.value = savedState[currentNetwork].line;
+                        populateStationDropdown(savedState[currentNetwork].line, savedState[currentNetwork].station);
                         isInitialLoad = true;
                         fetchRealTimeData();
                     }
@@ -999,13 +1003,12 @@
         async function fetchRealTimeData() {
             const t = TRANSLATIONS[currentLang];
             
-            // Bug Fix: Force the DOM dropdown to match our JS Source of Truth before doing anything else.
-            // This completely prevents the Wu Kai Sha auto-reset bug caused by browser auto-translators.
-            if (stationSelect.value !== activeStationKey) {
-                stationSelect.value = activeStationKey;
+            // Bug Fix Implementation: Force DOM synchronization with saved state
+            if (stationSelect.value !== savedState[currentNetwork].station) {
+                stationSelect.value = savedState[currentNetwork].station;
             }
 
-            const targetStationObj = STATIONS.find(s => s.key === activeStationKey);
+            const targetStationObj = STATIONS.find(s => s.key === savedState[currentNetwork].station);
             if (!targetStationObj) return;
 
             // INTERCHANGE LOGIC: Find all lines sharing the exact same key or English name
@@ -1063,7 +1066,6 @@
                                 </div>
                     `;
 
-                    // Platform vs Route toggle for Light Rail
                     if (result.type === 'LRT' && result.success) {
                         newHtml += `
                             <div class="flex p-1 bg-slate-900 rounded-lg w-max border border-slate-800">
@@ -1077,7 +1079,6 @@
                     if (!result.success) {
                         newHtml += `<div class="col-span-full glass-card rounded-2xl p-6 text-center text-rose-400 border-t-4 ${meta.border}">${t.apiError}</div>`;
                     } else if (result.type === 'HR') {
-                        // Heavy Rail parsing
                         const stationData = result.data.data[`${result.lineCode}-${result.stn.code}`];
                         if (stationData) {
                             if(stationData.curr_time) lastUpdateTime = stationData.curr_time.split(' ')[1] || lastUpdateTime;
@@ -1087,24 +1088,20 @@
                             newHtml += `<div class="col-span-full glass-card rounded-2xl p-6 text-center text-slate-400">${t.noTrains}</div>`;
                         }
                     } else if (result.type === 'LRT') {
-                        // Light Rail parsing
                         const platforms = result.data.platform_list || [];
                         if (platforms.length === 0) {
                             newHtml += `<div class="col-span-full glass-card rounded-2xl p-6 text-center text-slate-400">${t.noTrains}</div>`;
                         } else {
                             if (lrtSortMode === 'platform') {
-                                // Default Platform view
                                 platforms.forEach(plat => {
                                     const platTitle = `${t.platform}${plat.platform_id}`;
                                     newHtml += generatePlatformHtml(meta, platTitle, 'ph-train-regional', plat.route_list || [], result.stn.isTerminal, 'LRT');
                                 });
                             } else {
-                                // Route-based grouping view
                                 let trainsByRoute = {};
                                 platforms.forEach(plat => {
                                     (plat.route_list || []).forEach(train => {
                                         if (!trainsByRoute[train.route_no]) trainsByRoute[train.route_no] = [];
-                                        // Tag the train with its platform so we can show it in the UI
                                         trainsByRoute[train.route_no].push({ ...train, platform_id: plat.platform_id });
                                     });
                                 });
@@ -1112,7 +1109,6 @@
                                 const sortedRoutes = Object.keys(trainsByRoute).sort();
                                 sortedRoutes.forEach(routeNo => {
                                     const routeTitle = `${t.routePre}${routeNo}`;
-                                    // Sort trains on this route chronologically by arriving time
                                     const sortedTrains = trainsByRoute[routeNo].sort((a, b) => {
                                         let aMins = a.time_en.includes('min') ? parseInt(a.time_en) : (a.time_en === 'arriving' ? 0 : 99);
                                         let bMins = b.time_en.includes('min') ? parseInt(b.time_en) : (b.time_en === 'arriving' ? 0 : 99);
@@ -1206,7 +1202,6 @@
                         platText = `${t.platform}${train.plat}`;
                         loadFactor = calculateLoadHR(trains, index, isTerminal);
                     } else {
-                        // Light Rail UI features highly visible tactical car length badge
                         let rawDestName = train.dest_en;
                         if (currentLang === 'tc') rawDestName = train.dest_ch || train.dest_en;
                         else if (currentLang === 'sc') rawDestName = tcToSc(train.dest_ch || train.dest_en);
@@ -1220,7 +1215,7 @@
                         if (type === 'LRT_ROUTE') {
                             platText = `<span class="text-white">${t.platformBrief}${train.platform_id}</span>`;
                         } else {
-                            platText = ``; // Route already in title, car length in badge
+                            platText = ``; 
                         }
 
                         const isTwoCar = (train.train_length === "2" || train.train_length === 2);
@@ -1286,3 +1281,4 @@
     </script>
 </body>
 </html>
+
