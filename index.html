@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>MTR Time - Real-Time Network Estimator</title>
+    <title>Pulse - Transit Estimator</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Phosphor Icons -->
@@ -79,17 +79,14 @@
     <div class="w-full max-w-6xl space-y-4 sm:space-y-6">
         
         <!-- Header -->
-        <header class="flex flex-col sm:flex-row items-center justify-between gap-4 glass-panel p-4 sm:p-5 rounded-2xl shadow-2xl w-full">
-            <div class="flex items-center gap-3.5 text-center sm:text-left">
-                <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
-                    <i class="ph-bold ph-train text-2xl text-white"></i>
+        <header class="flex flex-row items-center justify-between gap-4 glass-panel p-4 sm:p-5 rounded-2xl shadow-2xl w-full">
+            <div class="flex items-center gap-3.5">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
+                    <i class="ph-bold ph-train text-xl sm:text-2xl text-white"></i>
                 </div>
-                <div>
-                    <h1 id="uiAppTitle" class="text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
-                        MTR Time
-                    </h1>
-                    <p id="uiSubtitle" class="text-[11px] sm:text-sm text-slate-400 font-medium">Real-time ETAs & algorithmic load prediction for MTR & Light Rail</p>
-                </div>
+                <h1 id="uiAppTitle" class="text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
+                    Pulse
+                </h1>
             </div>
 
             <!-- Language Switcher -->
@@ -105,7 +102,7 @@
             
             <!-- Network Toggle -->
             <div class="flex p-1.5 bg-slate-950/50 border border-slate-800 rounded-xl w-full sm:w-max mx-auto sm:mx-0">
-                <button id="btnToggleHR" onclick="switchNetwork('HR')" class="flex-1 sm:flex-none px-6 py-2.5 sm:py-2 rounded-lg text-sm font-bold bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 transition">MTR</button>
+                <button id="btnToggleHR" onclick="switchNetwork('HR')" class="flex-1 sm:flex-none px-6 py-2.5 sm:py-2 rounded-lg text-sm font-bold bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 transition">Metro</button>
                 <button id="btnToggleLRT" onclick="switchNetwork('LRT')" class="flex-1 sm:flex-none px-6 py-2.5 sm:py-2 rounded-lg text-sm font-bold text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition">Light Rail</button>
             </div>
 
@@ -164,7 +161,7 @@
                 <i class="ph-bold ph-chat-circle-text text-emerald-400"></i>
                 Send Feedback
             </button>
-            <p class="text-slate-600 font-mono text-[11px]">MTR Time &bull; 2026</p>
+            <p class="text-slate-600 font-mono text-[11px]">Pulse &bull; 2026</p>
         </footer>
     </div>
 
@@ -196,7 +193,7 @@
         let isInitialLoad = true; 
         let lrtSortMode = 'route'; 
 
-        // Network State Tracking - Solves the auto-reset bug by remembering selections independently
+        // Network State Tracking 
         let savedState = {
             'HR': { line: 'TML', station: 'WKS' },
             'LRT': { line: 'LRT_TM', station: 'LRT_001' }
@@ -205,9 +202,8 @@
         // Translation dictionary
         const TRANSLATIONS = {
             en: {
-                appTitle: "MTR Time",
-                subtitle: "Real-time ETAs & load prediction for MTR & Light Rail",
-                mtrNetwork: "MTR",
+                appTitle: "Pulse",
+                metroNetwork: "Metro",
                 lightRail: "Light Rail",
                 browseByLine: "Browse by Line",
                 browseByZone: "Browse by Zone",
@@ -246,9 +242,8 @@
                 send: "Send"
             },
             tc: {
-                appTitle: "MTR Time 香港地鐵",
-                subtitle: "港鐵及輕鐵即時到站時間與載客量預測",
-                mtrNetwork: "港鐵",
+                appTitle: "Pulse",
+                metroNetwork: "重鐵",
                 lightRail: "輕鐵",
                 browseByLine: "按路線選擇",
                 browseByZone: "按區域選擇",
@@ -287,9 +282,8 @@
                 send: "發送"
             },
             sc: {
-                appTitle: "MTR Time 香港地铁",
-                subtitle: "港铁及轻铁实时到站时间与载客量预测",
-                mtrNetwork: "港铁",
+                appTitle: "Pulse",
+                metroNetwork: "重铁",
                 lightRail: "轻铁",
                 browseByLine: "按路线选择",
                 browseByZone: "按区域选择",
@@ -515,7 +509,7 @@
             { key: 'KAT', line: 'TML', code: 'KAT', name: { en: 'Kai Tak', tc: '啟德', sc: '启德' }, lat: 22.3323, lng: 114.1966, isTerminal: false },
             { key: 'SUW', line: 'TML', code: 'SUW', name: { en: 'Sung Wong Toi', tc: '宋皇臺', sc: '宋皇台' }, lat: 22.3275, lng: 114.1906, isTerminal: false },
             { key: 'TKW', line: 'TML', code: 'TKW', name: { en: 'To Kwa Wan', tc: '土瓜灣', sc: '土瓜湾' }, lat: 22.3168, lng: 114.1887, isTerminal: false },
-            { key: 'HOM', line: 'TML', code: 'HOM', name: { en: '何文田', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
+            { key: 'HOM', line: 'TML', code: 'HOM', name: { en: 'Ho Man Tin', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
             { key: 'HUH', line: 'TML', code: 'HUH', name: { en: 'Hung Hom', tc: '紅磡', sc: '红磡' }, lat: 22.3031, lng: 114.1818, isTerminal: false },
             { key: 'ETS', line: 'TML', code: 'ETS', name: { en: 'East Tsim Sha Tsui', tc: '尖東', sc: '尖东' }, lat: 22.2963, lng: 114.1748, isTerminal: false },
             { key: 'AUS', line: 'TML', code: 'AUS', name: { en: 'Austin', tc: '柯士甸', sc: '柯士甸' }, lat: 22.3045, lng: 114.1661, isTerminal: false },
@@ -719,7 +713,7 @@
             const user = 'mtrtimehk';
             const domain = 'gmail.com';
             const emailAddress = `${user}@${domain}`;
-            const subject = encodeURIComponent('MTR Time App Feedback');
+            const subject = encodeURIComponent('Pulse App Feedback');
             const body = encodeURIComponent(msg);
             
             window.location.href = `mailto:${emailAddress}?subject=${subject}&body=${body}`;
@@ -771,7 +765,7 @@
             const btnLRT = document.getElementById('btnToggleLRT');
             const lblLine = document.getElementById('lblLineSelect');
             
-            btnHR.textContent = t.mtrNetwork;
+            btnHR.textContent = t.metroNetwork;
             btnLRT.textContent = t.lightRail;
 
             if (net === 'HR') {
@@ -853,7 +847,6 @@
 
             const t = TRANSLATIONS[lang];
             document.getElementById('uiAppTitle').textContent = t.appTitle;
-            document.getElementById('uiSubtitle').textContent = t.subtitle;
             document.getElementById('lblStationSelect').textContent = t.selectStation;
             document.getElementById('uiGpsBtnText').textContent = t.nearestStation;
             document.getElementById('uiInterchangeLabel').textContent = t.connectedLines;
@@ -1003,7 +996,6 @@
         async function fetchRealTimeData() {
             const t = TRANSLATIONS[currentLang];
             
-            // Bug Fix Implementation: Force DOM synchronization with saved state
             if (stationSelect.value !== savedState[currentNetwork].station) {
                 stationSelect.value = savedState[currentNetwork].station;
             }
@@ -1281,4 +1273,3 @@
     </script>
 </body>
 </html>
-
