@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="dark overflow-x-hidden">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <title>MTR Time - Real-Time Network Estimator</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -74,12 +74,12 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center py-6 px-3 sm:px-6 lg:px-8 bg-slate-950 text-slate-100">
+<body class="min-h-screen flex flex-col items-center py-4 sm:py-6 px-3 sm:px-6 lg:px-8 bg-slate-950 text-slate-100 overflow-x-hidden w-full max-w-[100vw]">
 
-    <div class="w-full max-w-6xl space-y-6">
+    <div class="w-full max-w-6xl space-y-4 sm:space-y-6">
         
         <!-- Header -->
-        <header class="flex flex-col sm:flex-row items-center justify-between gap-4 glass-panel p-5 rounded-2xl shadow-2xl">
+        <header class="flex flex-col sm:flex-row items-center justify-between gap-4 glass-panel p-4 sm:p-5 rounded-2xl shadow-2xl w-full">
             <div class="flex items-center gap-3.5 text-center sm:text-left">
                 <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
                     <i class="ph-bold ph-train text-2xl text-white"></i>
@@ -88,12 +88,12 @@
                     <h1 id="uiAppTitle" class="text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
                         MTR Time
                     </h1>
-                    <p id="uiSubtitle" class="text-xs sm:text-sm text-slate-400 font-medium">Real-time ETAs & algorithmic load prediction for Heavy & Light Rail</p>
+                    <p id="uiSubtitle" class="text-[11px] sm:text-sm text-slate-400 font-medium">Real-time ETAs & algorithmic load prediction for Heavy & Light Rail</p>
                 </div>
             </div>
 
             <!-- Language Switcher -->
-            <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 shadow-inner">
+            <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 shadow-inner shrink-0">
                 <button onclick="setLanguage('en')" id="langBtn-en" class="lang-btn text-xs px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">EN</button>
                 <button onclick="setLanguage('tc')" id="langBtn-tc" class="lang-btn text-xs px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">繁中</button>
                 <button onclick="setLanguage('sc')" id="langBtn-sc" class="lang-btn text-xs px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">简中</button>
@@ -101,45 +101,52 @@
         </header>
 
         <!-- Controls Section -->
-        <section class="glass-panel rounded-2xl p-5 shadow-xl space-y-5">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <section class="glass-panel rounded-2xl p-4 sm:p-5 shadow-xl space-y-4 sm:space-y-5 w-full">
+            
+            <!-- Network Toggle -->
+            <div class="flex p-1.5 bg-slate-950/50 border border-slate-800 rounded-xl w-full sm:w-max">
+                <button id="btnToggleHR" onclick="switchNetwork('HR')" class="flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 transition">Heavy Rail</button>
+                <button id="btnToggleLRT" onclick="switchNetwork('LRT')" class="flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition">Light Rail</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 items-end border-t border-slate-800 pt-4 sm:pt-5">
                 
-                <div>
-                    <label id="lblLineSelect" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Browse by Line</label>
-                    <select id="lineSelect" class="w-full bg-slate-900 border border-slate-700/80 text-slate-100 rounded-xl py-2.5 px-3.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-sm font-medium">
+                <div class="w-full">
+                    <label id="lblLineSelect" class="block text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Browse by Line</label>
+                    <select id="lineSelect" class="w-full bg-slate-900 border border-slate-700/80 text-slate-100 rounded-xl py-2.5 px-3.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-base sm:text-sm font-medium">
                         <!-- Populated dynamically by JS -->
                     </select>
                 </div>
 
-                <div>
-                    <label id="lblStationSelect" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Station (Interchanges Auto-Link)</label>
-                    <select id="stationSelect" class="w-full bg-slate-900 border border-slate-700/80 text-slate-100 rounded-xl py-2.5 px-3.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-sm font-medium">
+                <div class="w-full">
+                    <label id="lblStationSelect" class="block text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Station (Interchanges Auto-Link)</label>
+                    <select id="stationSelect" class="w-full bg-slate-900 border border-slate-700/80 text-slate-100 rounded-xl py-2.5 px-3.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-base sm:text-sm font-medium">
                         <!-- Populated dynamically by JS -->
                     </select>
                 </div>
 
-                <div>
+                <div class="w-full mt-1 sm:mt-0">
                     <button id="gpsBtn" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold py-2.5 px-4 rounded-xl transition shadow-lg shadow-emerald-600/20 active:scale-[0.98] flex items-center justify-center gap-2 text-sm">
                         <i class="ph-bold ph-crosshair text-base"></i>
-                        <span id="uiGpsBtnText">Nearest Station</span>
+                        <span id="uiGpsBtnText" class="truncate">Nearest Station</span>
                     </button>
                 </div>
             </div>
 
             <!-- Interchanges Connected Badges -->
             <div id="interchangeBadges" class="hidden flex-wrap items-center gap-2 pt-2 border-t border-slate-800">
-                <span id="uiInterchangeLabel" class="text-xs font-semibold text-slate-400 mr-1">Connected Lines:</span>
+                <span id="uiInterchangeLabel" class="text-[11px] sm:text-xs font-semibold text-slate-400 mr-1">Connected Lines:</span>
                 <div id="interchangePills" class="flex flex-wrap gap-2"></div>
             </div>
 
             <!-- Status Indicator Bar -->
-            <div class="flex items-center justify-between px-4 py-2.5 rounded-xl bg-slate-900/70 border border-slate-800">
-                <div id="statusBox" class="text-xs sm:text-sm flex items-center gap-2.5">
-                    <div class="w-2.5 h-2.5 rounded-full bg-yellow-500 animate-pulse shrink-0" id="statusDot"></div>
-                    <span id="statusText" class="text-slate-300 font-medium">Connecting...</span>
+            <div class="flex flex-wrap sm:flex-nowrap items-center justify-between px-3 sm:px-4 py-2.5 rounded-xl bg-slate-900/70 border border-slate-800 gap-2">
+                <div id="statusBox" class="text-xs sm:text-sm flex items-center gap-2.5 min-w-0">
+                    <div class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-yellow-500 animate-pulse shrink-0" id="statusDot"></div>
+                    <span id="statusText" class="text-slate-300 font-medium truncate">Connecting...</span>
                 </div>
                 
-                <button id="manualSyncBtn" onclick="fetchRealTimeData()" class="text-xs font-mono text-emerald-400 flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg border border-emerald-500/20 transition cursor-pointer">
+                <button id="manualSyncBtn" onclick="fetchRealTimeData()" class="text-xs font-mono text-emerald-400 flex items-center justify-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg border border-emerald-500/20 transition cursor-pointer shrink-0">
                     <i class="ph-bold ph-arrows-clockwise text-emerald-400" id="syncIcon"></i>
                     <span id="countdownText">15s</span>
                 </button>
@@ -147,12 +154,12 @@
         </section>
 
         <!-- Dynamic Results Section -->
-        <section id="resultsContainer" class="space-y-8 min-h-[300px]">
+        <section id="resultsContainer" class="space-y-6 sm:space-y-8 min-h-[300px] w-full">
             <!-- Dynamically populated by JS -->
         </section>
         
         <!-- Footer -->
-        <footer class="text-center text-slate-500 text-xs py-6 space-y-3 border-t border-slate-800/60">
+        <footer class="text-center text-slate-500 text-xs py-6 space-y-3 border-t border-slate-800/60 w-full">
             <button onclick="openFeedbackModal()" id="btnFeedback" class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition border border-slate-700 hover:border-slate-600">
                 <i class="ph-bold ph-chat-circle-text text-emerald-400"></i>
                 Send Feedback
@@ -162,18 +169,18 @@
     </div>
 
     <!-- Feedback Modal -->
-    <div id="feedbackModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+    <div id="feedbackModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 w-full h-full">
+        <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-md p-6 shadow-2xl overflow-hidden relative">
             <div class="flex justify-between items-center mb-4">
                 <h2 id="modalTitle" class="text-lg font-bold text-white flex items-center gap-2">
                     <i class="ph-bold ph-envelope-simple text-emerald-400"></i> Send Feedback
                 </h2>
-                <button onclick="closeFeedbackModal()" class="text-slate-400 hover:text-white transition">
+                <button onclick="closeFeedbackModal()" class="text-slate-400 hover:text-white transition p-1">
                     <i class="ph-bold ph-x text-xl"></i>
                 </button>
             </div>
             <form id="feedbackForm" onsubmit="submitFeedback(event)">
-                <textarea id="fbMessage" rows="5" required class="w-full bg-slate-950 border border-slate-700 text-slate-100 rounded-xl p-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-sm mb-4 resize-none" placeholder="Tell us what you think or report an issue..."></textarea>
+                <textarea id="fbMessage" rows="5" required class="w-full bg-slate-950 border border-slate-700 text-slate-100 rounded-xl p-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-base sm:text-sm mb-4 resize-none" placeholder="Tell us what you think or report an issue..."></textarea>
                 <div class="flex justify-end gap-3">
                     <button type="button" onclick="closeFeedbackModal()" id="btnCancel" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition border border-slate-700">Cancel</button>
                     <button type="submit" id="btnSend" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition shadow-lg shadow-emerald-600/20">Send</button>
@@ -183,16 +190,20 @@
     </div>
 
     <script>
-        // Language state
+        // State
         let currentLang = 'tc'; // Default to Traditional Chinese for HK context
-        let isInitialLoad = true; // Tracks if we need to show the full-screen spinner
+        let currentNetwork = 'HR'; // 'HR' for Heavy Rail, 'LRT' for Light Rail
+        let isInitialLoad = true; 
 
         // Translation dictionary
         const TRANSLATIONS = {
             en: {
                 appTitle: "MTR Time",
                 subtitle: "Real-time ETAs & load prediction for Heavy & Light Rail",
+                heavyRail: "Heavy Rail",
+                lightRail: "Light Rail",
                 browseByLine: "Browse by Line",
+                browseByZone: "Browse by Zone",
                 selectStation: "Station (Interchanges Auto-Link)",
                 nearestStation: "Nearest Station",
                 connectedLines: "Interchange Lines:",
@@ -226,7 +237,10 @@
             tc: {
                 appTitle: "MTR Time 香港地鐵",
                 subtitle: "港鐵及輕鐵即時到站時間與載客量預測",
+                heavyRail: "重鐵網絡",
+                lightRail: "輕鐵網絡",
                 browseByLine: "按路線選擇",
+                browseByZone: "按區域選擇",
                 selectStation: "車站（自動連結轉乘站）",
                 nearestStation: "最近車站",
                 connectedLines: "可轉乘路線：",
@@ -260,7 +274,10 @@
             sc: {
                 appTitle: "MTR Time 香港地铁",
                 subtitle: "港铁及轻铁实时到站时间与载客量预测",
+                heavyRail: "重铁网络",
+                lightRail: "轻铁网络",
                 browseByLine: "按路线选择",
+                browseByZone: "按区域选择",
                 selectStation: "车站（自动链接换乘站）",
                 nearestStation: "最近车站",
                 connectedLines: "可换乘路线：",
@@ -295,62 +312,62 @@
 
         const LINE_META = {
             'AEL': { 
-                code: 'AEL',
+                network: 'HR', code: 'AEL',
                 name: { en: 'Airport Express', tc: '機場快綫', sc: '机场快线' }, 
                 color: 'bg-teal-500', border: 'border-t-teal-500', text: 'text-teal-400', badge: 'bg-teal-500/20 text-teal-300 border-teal-500/30'
             },
             'TCL': { 
-                code: 'TCL',
+                network: 'HR', code: 'TCL',
                 name: { en: 'Tung Chung Line', tc: '東涌綫', sc: '东涌线' }, 
                 color: 'bg-orange-500', border: 'border-t-orange-500', text: 'text-orange-400', badge: 'bg-orange-500/20 text-orange-300 border-orange-500/30'
             },
             'TML': { 
-                code: 'TML',
+                network: 'HR', code: 'TML',
                 name: { en: 'Tuen Ma Line', tc: '屯馬綫', sc: '屯马线' }, 
                 color: 'bg-amber-700', border: 'border-t-amber-700', text: 'text-amber-500', badge: 'bg-amber-700/20 text-amber-300 border-amber-700/30'
             },
             'TKL': { 
-                code: 'TKL',
+                network: 'HR', code: 'TKL',
                 name: { en: 'Tseung Kwan O Line', tc: '將軍澳綫', sc: '将军澳线' }, 
                 color: 'bg-purple-600', border: 'border-t-purple-600', text: 'text-purple-400', badge: 'bg-purple-600/20 text-purple-300 border-purple-600/30'
             },
             'EAL': { 
-                code: 'EAL',
+                network: 'HR', code: 'EAL',
                 name: { en: 'East Rail Line', tc: '東鐵綫', sc: '东铁线' }, 
                 color: 'bg-sky-500', border: 'border-t-sky-500', text: 'text-sky-400', badge: 'bg-sky-500/20 text-sky-300 border-sky-500/30'
             },
             'SIL': { 
-                code: 'SIL',
+                network: 'HR', code: 'SIL',
                 name: { en: 'South Island Line', tc: '南港島綫', sc: '南港岛线' }, 
                 color: 'bg-lime-500', border: 'border-t-lime-500', text: 'text-lime-400', badge: 'bg-lime-500/20 text-lime-300 border-lime-500/30'
             },
             'TWL': { 
-                code: 'TWL',
+                network: 'HR', code: 'TWL',
                 name: { en: 'Tsuen Wan Line', tc: '荃灣綫', sc: '荃湾线' }, 
                 color: 'bg-red-600', border: 'border-t-red-600', text: 'text-red-400', badge: 'bg-red-600/20 text-red-300 border-red-600/30'
             },
             'ISL': { 
-                code: 'ISL',
+                network: 'HR', code: 'ISL',
                 name: { en: 'Island Line', tc: '港島綫', sc: '港岛线' }, 
                 color: 'bg-blue-600', border: 'border-t-blue-600', text: 'text-blue-400', badge: 'bg-blue-600/20 text-blue-300 border-blue-600/30'
             },
             'KTL': { 
-                code: 'KTL',
+                network: 'HR', code: 'KTL',
                 name: { en: 'Kwun Tong Line', tc: '觀塘綫', sc: '观塘线' }, 
                 color: 'bg-emerald-600', border: 'border-t-emerald-600', text: 'text-emerald-400', badge: 'bg-emerald-600/20 text-emerald-300 border-emerald-600/30'
             },
             'LRT_TM': { 
-                code: 'LRT_TM',
+                network: 'LRT', code: 'LRT_TM',
                 name: { en: 'Light Rail (Tuen Mun)', tc: '輕鐵 (屯門)', sc: '轻铁 (屯门)' }, 
                 color: 'bg-yellow-500', border: 'border-t-yellow-500', text: 'text-yellow-400', badge: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
             },
             'LRT_YL': { 
-                code: 'LRT_YL',
+                network: 'LRT', code: 'LRT_YL',
                 name: { en: 'Light Rail (Yuen Long)', tc: '輕鐵 (元朗)', sc: '轻铁 (元朗)' }, 
                 color: 'bg-amber-400', border: 'border-t-amber-400', text: 'text-amber-300', badge: 'bg-amber-400/20 text-amber-200 border-amber-400/30'
             },
             'LRT_TSW': { 
-                code: 'LRT_TSW',
+                network: 'LRT', code: 'LRT_TSW',
                 name: { en: 'Light Rail (Tin Shui Wai)', tc: '輕鐵 (天水圍)', sc: '轻铁 (天水围)' }, 
                 color: 'bg-orange-400', border: 'border-t-orange-400', text: 'text-orange-300', badge: 'bg-orange-400/20 text-orange-200 border-orange-400/30'
             }
@@ -684,13 +701,26 @@
             // Anti-spam email assembly
             const user = 'mtrtimehk';
             const domain = 'gmail.com';
+            const emailAddress = `${user}@${domain}`;
             const subject = encodeURIComponent('MTR Time App Feedback');
             const body = encodeURIComponent(msg);
             
-            window.location.href = `mailto:${user}@${domain}?subject=${subject}&body=${body}`;
+            // Try to open the default email app
+            window.location.href = `mailto:${emailAddress}?subject=${subject}&body=${body}`;
             
-            closeFeedbackModal();
-            document.getElementById('fbMessage').value = '';
+            // Transform the form to show a fallback message instead of closing instantly
+            const form = document.getElementById('feedbackForm');
+            form.innerHTML = `
+                <div class="text-center space-y-4 py-6">
+                    <i class="ph-fill ph-check-circle text-5xl text-emerald-400"></i>
+                    <p class="text-slate-200 font-medium">Opening your email app...</p>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <p class="text-sm text-slate-400 mb-2">If nothing happened, your device doesn't have a default mail app set. Please email us directly at:</p>
+                        <p class="text-emerald-400 font-mono font-bold select-all">${emailAddress}</p>
+                    </div>
+                    <button type="button" onclick="closeFeedbackModal(); setTimeout(() => location.reload(), 300);" class="mt-4 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-lg transition border border-slate-700 w-full">Close</button>
+                </div>
+            `;
         }
 
         // Convert Traditional Chinese strings to Simplified Chinese
@@ -715,8 +745,43 @@
             return text.split('').map(c => scMap[c] || c).join('');
         }
 
+        function updateNetworkToggleUI(net) {
+            const t = TRANSLATIONS[currentLang];
+            const btnHR = document.getElementById('btnToggleHR');
+            const btnLRT = document.getElementById('btnToggleLRT');
+            const lblLine = document.getElementById('lblLineSelect');
+            
+            btnHR.textContent = t.heavyRail;
+            btnLRT.textContent = t.lightRail;
+
+            if (net === 'HR') {
+                btnHR.className = "flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 transition";
+                btnLRT.className = "flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition";
+                lblLine.textContent = t.browseByLine;
+            } else {
+                btnLRT.className = "flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 transition";
+                btnHR.className = "flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition";
+                lblLine.textContent = t.browseByZone;
+            }
+        }
+
+        function switchNetwork(net) {
+            if (currentNetwork === net) return;
+            currentNetwork = net;
+            updateNetworkToggleUI(net);
+            
+            populateLineDropdown();
+            const defaultLine = net === 'HR' ? 'TML' : 'LRT_TM';
+            lineSelect.value = defaultLine;
+            populateStationDropdown(defaultLine);
+            
+            isInitialLoad = true;
+            fetchRealTimeData();
+        }
+
         function init() {
             setLanguage('tc'); // Set initial language to TC
+            updateNetworkToggleUI(currentNetwork);
             populateLineDropdown();
             lineSelect.value = 'TML'; // Default line
             populateStationDropdown('TML');
@@ -750,7 +815,6 @@
             const t = TRANSLATIONS[lang];
             document.getElementById('uiAppTitle').textContent = t.appTitle;
             document.getElementById('uiSubtitle').textContent = t.subtitle;
-            document.getElementById('lblLineSelect').textContent = t.browseByLine;
             document.getElementById('lblStationSelect').textContent = t.selectStation;
             document.getElementById('uiGpsBtnText').textContent = t.nearestStation;
             document.getElementById('uiInterchangeLabel').textContent = t.connectedLines;
@@ -766,6 +830,7 @@
             const currentSelectedLine = lineSelect.value || 'TML';
             const currentStationKey = stationSelect.value || 'YUL_TML';
 
+            updateNetworkToggleUI(currentNetwork);
             populateLineDropdown();
             lineSelect.value = currentSelectedLine;
             populateStationDropdown(currentSelectedLine, currentStationKey);
@@ -776,12 +841,14 @@
 
         function populateLineDropdown() {
             lineSelect.innerHTML = '';
-            Object.entries(LINE_META).forEach(([code, meta]) => {
-                const opt = document.createElement('option');
-                opt.value = code;
-                opt.textContent = meta.name[currentLang] || meta.name.en;
-                lineSelect.appendChild(opt);
-            });
+            Object.entries(LINE_META)
+                .filter(([code, meta]) => meta.network === currentNetwork)
+                .forEach(([code, meta]) => {
+                    const opt = document.createElement('option');
+                    opt.value = code;
+                    opt.textContent = meta.name[currentLang] || meta.name.en;
+                    lineSelect.appendChild(opt);
+                });
         }
 
         function populateStationDropdown(lineCode, selectStationKey = null) {
@@ -844,6 +911,14 @@
                         const msg = t.nearestFound.replace('{name}', stnName).replace('{dist}', minDistance.toFixed(1));
                         updateStatus(msg, 'green');
                         
+                        // Automatically switch tabs if the nearest station is on a different network!
+                        const targetMeta = LINE_META[nearest.line];
+                        if (targetMeta && targetMeta.network !== currentNetwork) {
+                            currentNetwork = targetMeta.network;
+                            updateNetworkToggleUI(currentNetwork);
+                            populateLineDropdown();
+                        }
+                        
                         lineSelect.value = nearest.line;
                         populateStationDropdown(nearest.line, nearest.key);
                         isInitialLoad = true;
@@ -863,13 +938,13 @@
         function resetGpsBtn() {
             const t = TRANSLATIONS[currentLang];
             gpsBtn.disabled = false;
-            gpsBtn.innerHTML = `<i class="ph-bold ph-crosshair text-base"></i> <span>${t.nearestStation}</span>`;
+            gpsBtn.innerHTML = `<i class="ph-bold ph-crosshair text-base"></i> <span class="truncate">${t.nearestStation}</span>`;
         }
 
         function updateStatus(msg, color) {
             statusText.textContent = msg;
             const colors = { yellow: 'bg-yellow-500', green: 'bg-emerald-500', red: 'bg-rose-500' };
-            statusDot.className = `w-2.5 h-2.5 rounded-full animate-pulse shrink-0 ${colors[color]}`;
+            statusDot.className = `w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full animate-pulse shrink-0 ${colors[color]}`;
         }
 
         function startCountdown() {
@@ -950,14 +1025,14 @@
                     const lineName = meta.name[currentLang] || meta.name.en;
 
                     newHtml += `
-                        <div class="space-y-4">
+                        <div class="space-y-4 w-full">
                             <div class="flex items-center gap-3">
                                 <span class="w-2.5 h-7 rounded-full ${meta.color}"></span>
                                 <h3 class="text-xl font-bold text-white tracking-wide">
                                     ${lineName}
                                 </h3>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
                     `;
                     
                     if (!result.success) {
@@ -1017,7 +1092,7 @@
                 const meta = LINE_META[stn.line];
                 if (meta) {
                     const pill = document.createElement('span');
-                    pill.className = `text-xs px-2.5 py-1 rounded-full font-medium border ${meta.badge}`;
+                    pill.className = `text-[11px] sm:text-xs px-2 sm:px-2.5 py-1 rounded-full font-medium border ${meta.badge}`;
                     pill.textContent = meta.name[currentLang] || meta.name.en;
                     interchangePills.appendChild(pill);
                 }
@@ -1048,10 +1123,10 @@
         function generatePlatformHtml(meta, title, iconClass, trains, isTerminal, type) {
             const t = TRANSLATIONS[currentLang];
             let html = `
-                <div class="glass-card rounded-2xl p-5 flex flex-col h-full border-t-4 ${meta.border} shadow-lg">
-                    <h4 class="text-base font-bold mb-4 flex items-center gap-2 text-slate-200">
-                        <i class="ph-bold ${iconClass} ${meta.text} text-xl"></i> 
-                        <span>${title}</span>
+                <div class="glass-card rounded-2xl p-4 sm:p-5 flex flex-col h-full border-t-4 ${meta.border} shadow-lg w-full">
+                    <h4 class="text-sm sm:text-base font-bold mb-4 flex items-center gap-2 text-slate-200">
+                        <i class="ph-bold ${iconClass} ${meta.text} text-xl shrink-0"></i> 
+                        <span class="truncate">${title}</span>
                     </h4>
                     <div class="flex-1 space-y-3">
             `;
@@ -1115,20 +1190,20 @@
                     }
 
                     html += `
-                        <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-800 shadow-sm hover:border-slate-700 transition">
-                            <div class="flex justify-between items-start mb-2.5">
-                                <div class="pr-2">
+                        <div class="bg-slate-900/80 rounded-xl p-3 sm:p-4 border border-slate-800 shadow-sm hover:border-slate-700 transition">
+                            <div class="flex justify-between items-start mb-2.5 gap-2">
+                                <div class="flex-1 min-w-0 pr-2">
                                     <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">${t.to}</p>
-                                    <p class="text-lg font-extrabold text-white leading-tight">${destName}</p>
+                                    <p class="text-base sm:text-lg font-extrabold text-white leading-tight truncate">${destName}</p>
                                 </div>
                                 <div class="text-right shrink-0">
-                                    <p class="text-2xl font-black text-white tracking-tight">${minText}</p>
-                                    <p class="text-[11px] font-semibold text-slate-400">${platText}</p>
+                                    <p class="text-xl sm:text-2xl font-black text-white tracking-tight">${minText}</p>
+                                    <p class="text-[10px] sm:text-[11px] font-semibold text-slate-400">${platText}</p>
                                 </div>
                             </div>
                             
                             <div class="mt-3 space-y-1.5">
-                                <div class="flex justify-between items-center text-xs">
+                                <div class="flex justify-between items-center text-[11px] sm:text-xs">
                                     <span class="flex items-center gap-1.5 text-slate-300 font-medium">
                                         <i class="ph-bold ${loadIcon}"></i> ${loadText}
                                     </span>
@@ -1151,3 +1226,4 @@
     </script>
 </body>
 </html>
+
