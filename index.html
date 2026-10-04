@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TransitPulse HK MTR - Real-Time Network Estimator</title>
+    <title>MTR Time - Real-Time Network Estimator</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Phosphor Icons -->
@@ -86,7 +86,7 @@
                 </div>
                 <div>
                     <h1 id="uiAppTitle" class="text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
-                        TransitPulse HK MTR
+                        MTR Time
                     </h1>
                     <p id="uiSubtitle" class="text-xs sm:text-sm text-slate-400 font-medium">Real-time ETAs & algorithmic load prediction for Heavy & Light Rail</p>
                 </div>
@@ -152,20 +152,45 @@
         </section>
         
         <!-- Footer -->
-        <footer class="text-center text-slate-500 text-xs py-6 space-y-1 border-t border-slate-800/60">
-            <p id="uiFooterText">Data fetched directly from data.gov.hk client-side API. Passenger load factor is an algorithmic simulation estimate based on train interval and length.</p>
-            <p class="text-slate-600 font-mono text-[11px]">TransitPulse HK MTR &bull; 2026</p>
+        <footer class="text-center text-slate-500 text-xs py-6 space-y-3 border-t border-slate-800/60">
+            <button onclick="openFeedbackModal()" id="btnFeedback" class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition border border-slate-700 hover:border-slate-600">
+                <i class="ph-bold ph-chat-circle-text text-emerald-400"></i>
+                Send Feedback
+            </button>
+            <p class="text-slate-600 font-mono text-[11px]">MTR Time &bull; 2026</p>
         </footer>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div id="feedbackModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="modalTitle" class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="ph-bold ph-envelope-simple text-emerald-400"></i> Send Feedback
+                </h2>
+                <button onclick="closeFeedbackModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="ph-bold ph-x text-xl"></i>
+                </button>
+            </div>
+            <form id="feedbackForm" onsubmit="submitFeedback(event)">
+                <textarea id="fbMessage" rows="5" required class="w-full bg-slate-950 border border-slate-700 text-slate-100 rounded-xl p-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-sm mb-4 resize-none" placeholder="Tell us what you think or report an issue..."></textarea>
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeFeedbackModal()" id="btnCancel" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition border border-slate-700">Cancel</button>
+                    <button type="submit" id="btnSend" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition shadow-lg shadow-emerald-600/20">Send</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>
         // Language state
         let currentLang = 'tc'; // Default to Traditional Chinese for HK context
+        let isInitialLoad = true; // Tracks if we need to show the full-screen spinner
 
         // Translation dictionary
         const TRANSLATIONS = {
             en: {
-                appTitle: "TransitPulse HK MTR",
+                appTitle: "MTR Time",
                 subtitle: "Real-time ETAs & load prediction for Heavy & Light Rail",
                 browseByLine: "Browse by Line",
                 selectStation: "Station (Interchanges Auto-Link)",
@@ -189,13 +214,17 @@
                 loadComfortable: "Comfortable",
                 loadStanding: "Standing Room",
                 loadCrowded: "Crowded",
-                dirUp: "Upbound (Direction 1)",
-                dirDown: "Downbound (Direction 2)",
-                footerText: "Data fetched securely via Cloudflare CDN proxy. Passenger load factor is an algorithmic simulation estimate based on train interval and vehicle capacity.",
-                syncNow: "Syncing..."
+                dirUp: "Departures (Direction 1)",
+                dirDown: "Departures (Direction 2)",
+                syncNow: "Syncing...",
+                feedbackBtn: "Send Feedback",
+                feedbackTitle: "Send Feedback",
+                feedbackPlaceholder: "Tell us what you think or report an issue...",
+                cancel: "Cancel",
+                send: "Send"
             },
             tc: {
-                appTitle: "TransitPulse 香港地鐵",
+                appTitle: "MTR Time 香港地鐵",
                 subtitle: "港鐵及輕鐵即時到站時間與載客量預測",
                 browseByLine: "按路線選擇",
                 selectStation: "車站（自動連結轉乘站）",
@@ -219,13 +248,17 @@
                 loadComfortable: "快適寬敞",
                 loadStanding: "適中企位",
                 loadCrowded: "較為擁擠",
-                dirUp: "上行 (方向 1)",
-                dirDown: "下行 (方向 2)",
-                footerText: "資料透過 Cloudflare CDN 代理安全擷取。載客量預測為基於班次間隔與車廂數量的演算法模擬估算。",
-                syncNow: "同步中..."
+                dirUp: "列車開出 (方向 1)",
+                dirDown: "列車開出 (方向 2)",
+                syncNow: "同步中...",
+                feedbackBtn: "發送意見回饋",
+                feedbackTitle: "意見回饋",
+                feedbackPlaceholder: "請輸入您的意見或回報問題...",
+                cancel: "取消",
+                send: "發送"
             },
             sc: {
-                appTitle: "TransitPulse 香港地铁",
+                appTitle: "MTR Time 香港地铁",
                 subtitle: "港铁及轻铁实时到站时间与载客量预测",
                 browseByLine: "按路线选择",
                 selectStation: "车站（自动链接换乘站）",
@@ -249,10 +282,14 @@
                 loadComfortable: "舒适宽松",
                 loadStanding: "适中企位",
                 loadCrowded: "较为拥挤",
-                dirUp: "上行 (方向 1)",
-                dirDown: "下行 (方向 2)",
-                footerText: "数据通过 Cloudflare CDN 代理安全获取。载客量预测为基于班次间隔与车厢数量的算法模拟估算。",
-                syncNow: "同步中..."
+                dirUp: "列车开出 (方向 1)",
+                dirDown: "列车开出 (方向 2)",
+                syncNow: "同步中...",
+                feedbackBtn: "发送意见反馈",
+                feedbackTitle: "意见反馈",
+                feedbackPlaceholder: "请输入您的意见或回报问题...",
+                cancel: "取消",
+                send: "发送"
             }
         };
 
@@ -632,6 +669,30 @@
         let timeRemaining = 15;
         const REFRESH_RATE = 15;
 
+        // Feedback Modal Logic
+        function openFeedbackModal() {
+            document.getElementById('feedbackModal').classList.remove('hidden');
+        }
+        
+        function closeFeedbackModal() {
+            document.getElementById('feedbackModal').classList.add('hidden');
+        }
+        
+        function submitFeedback(e) {
+            e.preventDefault();
+            const msg = document.getElementById('fbMessage').value;
+            // Anti-spam email assembly
+            const user = 'mtrtimehk';
+            const domain = 'gmail.com';
+            const subject = encodeURIComponent('MTR Time App Feedback');
+            const body = encodeURIComponent(msg);
+            
+            window.location.href = `mailto:${user}@${domain}?subject=${subject}&body=${body}`;
+            
+            closeFeedbackModal();
+            document.getElementById('fbMessage').value = '';
+        }
+
         // Convert Traditional Chinese strings to Simplified Chinese
         function tcToSc(text) {
             if (!text) return text;
@@ -661,11 +722,16 @@
             populateStationDropdown('TML');
 
             lineSelect.addEventListener('change', (e) => {
+                isInitialLoad = true;
                 populateStationDropdown(e.target.value);
                 fetchRealTimeData();
             });
 
-            stationSelect.addEventListener('change', fetchRealTimeData);
+            stationSelect.addEventListener('change', () => {
+                isInitialLoad = true;
+                fetchRealTimeData();
+            });
+            
             gpsBtn.addEventListener('click', locateNearestStation);
 
             fetchRealTimeData();
@@ -688,7 +754,13 @@
             document.getElementById('lblStationSelect').textContent = t.selectStation;
             document.getElementById('uiGpsBtnText').textContent = t.nearestStation;
             document.getElementById('uiInterchangeLabel').textContent = t.connectedLines;
-            document.getElementById('uiFooterText').textContent = t.footerText;
+            
+            // Feedback Modal texts
+            document.getElementById('btnFeedback').innerHTML = `<i class="ph-bold ph-chat-circle-text text-emerald-400"></i> ${t.feedbackBtn}`;
+            document.getElementById('modalTitle').innerHTML = `<i class="ph-bold ph-envelope-simple text-emerald-400"></i> ${t.feedbackTitle}`;
+            document.getElementById('fbMessage').placeholder = t.feedbackPlaceholder;
+            document.getElementById('btnCancel').textContent = t.cancel;
+            document.getElementById('btnSend').textContent = t.send;
 
             // Preserve current selections when language switches
             const currentSelectedLine = lineSelect.value || 'TML';
@@ -698,6 +770,7 @@
             lineSelect.value = currentSelectedLine;
             populateStationDropdown(currentSelectedLine, currentStationKey);
 
+            isInitialLoad = true;
             fetchRealTimeData();
         }
 
@@ -773,6 +846,7 @@
                         
                         lineSelect.value = nearest.line;
                         populateStationDropdown(nearest.line, nearest.key);
+                        isInitialLoad = true;
                         fetchRealTimeData();
                     }
                     resetGpsBtn();
@@ -834,12 +908,15 @@
             countdownText.textContent = t.syncNow;
             updateStatus(t.syncing, 'yellow');
             
-            resultsContainer.innerHTML = `
-                <div class="glass-panel rounded-2xl p-12 text-center text-slate-400 space-y-3">
-                    <i class="ph-bold ph-spinner animate-spin text-4xl text-emerald-400"></i>
-                    <p class="text-sm font-medium">${t.syncing}</p>
-                </div>
-            `;
+            // Only wipe container with spinner on initial/station changes to prevent scroll jumping
+            if (isInitialLoad) {
+                resultsContainer.innerHTML = `
+                    <div class="glass-panel rounded-2xl p-12 text-center text-slate-400 space-y-3">
+                        <i class="ph-bold ph-spinner animate-spin text-4xl text-emerald-400"></i>
+                        <p class="text-sm font-medium">${t.syncing}</p>
+                    </div>
+                `;
+            }
 
             try {
                 // Fetch concurrently for all connected lines at this interchange station
@@ -865,57 +942,57 @@
                 });
 
                 const results = await Promise.all(fetchPromises);
-                resultsContainer.innerHTML = ''; 
-                
+                let newHtml = '';
                 let lastUpdateTime = new Date().toLocaleTimeString();
 
                 results.forEach(result => {
                     const meta = LINE_META[result.lineCode];
                     const lineName = meta.name[currentLang] || meta.name.en;
 
-                    const sectionWrapper = document.createElement('div');
-                    sectionWrapper.className = "space-y-4";
-                    sectionWrapper.innerHTML = `
-                        <div class="flex items-center gap-3">
-                            <span class="w-2.5 h-7 rounded-full ${meta.color}"></span>
-                            <h3 class="text-xl font-bold text-white tracking-wide">
-                                ${lineName}
-                            </h3>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5" id="grid-${result.lineCode}"></div>
+                    newHtml += `
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3">
+                                <span class="w-2.5 h-7 rounded-full ${meta.color}"></span>
+                                <h3 class="text-xl font-bold text-white tracking-wide">
+                                    ${lineName}
+                                </h3>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     `;
-                    resultsContainer.appendChild(sectionWrapper);
                     
-                    const grid = document.getElementById(`grid-${result.lineCode}`);
-
                     if (!result.success) {
-                        grid.innerHTML = `<div class="col-span-full glass-card rounded-2xl p-6 text-center text-rose-400 border-t-4 ${meta.border}">${t.apiError}</div>`;
-                        return;
-                    }
-
-                    if (result.type === 'HR') {
+                        newHtml += `<div class="col-span-full glass-card rounded-2xl p-6 text-center text-rose-400 border-t-4 ${meta.border}">${t.apiError}</div>`;
+                    } else if (result.type === 'HR') {
                         // Heavy Rail Data parsing
                         const stationData = result.data.data[`${result.lineCode}-${result.stn.code}`];
                         if (stationData) {
                             if(stationData.curr_time) lastUpdateTime = stationData.curr_time.split(' ')[1] || lastUpdateTime;
-                            renderPlatform(grid, meta, t.dirUp, 'ph-arrow-circle-up', stationData.UP || [], result.stn.isTerminal, 'HR');
-                            renderPlatform(grid, meta, t.dirDown, 'ph-arrow-circle-down', stationData.DOWN || [], result.stn.isTerminal, 'HR');
+                            newHtml += generatePlatformHtml(meta, t.dirUp, 'ph-arrow-circle-up', stationData.UP || [], result.stn.isTerminal, 'HR');
+                            newHtml += generatePlatformHtml(meta, t.dirDown, 'ph-arrow-circle-down', stationData.DOWN || [], result.stn.isTerminal, 'HR');
                         } else {
-                            grid.innerHTML = `<div class="col-span-full glass-card rounded-2xl p-6 text-center text-slate-400">${t.noTrains}</div>`;
+                            newHtml += `<div class="col-span-full glass-card rounded-2xl p-6 text-center text-slate-400">${t.noTrains}</div>`;
                         }
                     } else if (result.type === 'LRT') {
                         // Light Rail Data parsing
                         const platforms = result.data.platform_list || [];
                         if (platforms.length === 0) {
-                            grid.innerHTML = `<div class="col-span-full glass-card rounded-2xl p-6 text-center text-slate-400">${t.noTrains}</div>`;
+                            newHtml += `<div class="col-span-full glass-card rounded-2xl p-6 text-center text-slate-400">${t.noTrains}</div>`;
                         } else {
                             platforms.forEach(plat => {
                                 const platTitle = `${t.platform} ${plat.platform_id}`;
-                                renderPlatform(grid, meta, platTitle, 'ph-train-regional', plat.route_list || [], result.stn.isTerminal, 'LRT');
+                                newHtml += generatePlatformHtml(meta, platTitle, 'ph-train-regional', plat.route_list || [], result.stn.isTerminal, 'LRT');
                             });
                         }
                     }
+                    newHtml += `</div></div>`;
                 });
+
+                // Apply the new HTML atomically to prevent scroll jump
+                const savedScroll = window.scrollY;
+                resultsContainer.innerHTML = newHtml;
+                window.scrollTo(0, savedScroll);
+
+                isInitialLoad = false; // Next auto-refresh will be completely silent
 
                 const syncMsg = t.liveSyncAt.replace('{time}', lastUpdateTime);
                 updateStatus(syncMsg, 'green');
@@ -968,17 +1045,15 @@
             return Math.min(98, Math.max(15, Math.round(load)));
         }
 
-        function renderPlatform(grid, meta, title, iconClass, trains, isTerminal, type) {
+        function generatePlatformHtml(meta, title, iconClass, trains, isTerminal, type) {
             const t = TRANSLATIONS[currentLang];
-            const container = document.createElement('div');
-            container.className = `glass-card rounded-2xl p-5 flex flex-col h-full border-t-4 ${meta.border} shadow-lg`;
-            
             let html = `
-                <h4 class="text-base font-bold mb-4 flex items-center gap-2 text-slate-200">
-                    <i class="ph-bold ${iconClass} ${meta.text} text-xl"></i> 
-                    <span>${title}</span>
-                </h4>
-                <div class="flex-1 space-y-3">
+                <div class="glass-card rounded-2xl p-5 flex flex-col h-full border-t-4 ${meta.border} shadow-lg">
+                    <h4 class="text-base font-bold mb-4 flex items-center gap-2 text-slate-200">
+                        <i class="ph-bold ${iconClass} ${meta.text} text-xl"></i> 
+                        <span>${title}</span>
+                    </h4>
+                    <div class="flex-1 space-y-3">
             `;
 
             if (trains.length === 0) {
@@ -1067,9 +1142,8 @@
                     `;
                 });
             }
-            html += `</div>`;
-            container.innerHTML = html;
-            grid.appendChild(container);
+            html += `</div></div>`;
+            return html;
         }
 
         // Initialize application on DOM load
