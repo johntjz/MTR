@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <meta name="google" content="notranslate">
-    <title>Pulse - Transit Estimator</title>
+    <title>Pulse HK v1001 - Transit Estimator</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Phosphor Icons -->
@@ -85,8 +85,9 @@
                 <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
                     <i class="ph-bold ph-train text-xl sm:text-2xl text-white"></i>
                 </div>
-                <h1 id="uiAppTitle" class="text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
-                    Pulse
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-baseline gap-2">
+                    <span id="uiAppTitle" class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">Pulse HK</span>
+                    <span class="text-sm font-mono text-emerald-500">v1001</span>
                 </h1>
             </div>
 
@@ -203,7 +204,7 @@
         // Translation dictionary
         const TRANSLATIONS = {
             en: {
-                appTitle: "Pulse",
+                appTitle: "Pulse HK",
                 metroNetwork: "Metro",
                 lightRail: "Light Rail",
                 browseByLine: "Browse by Line",
@@ -243,7 +244,7 @@
                 send: "Send"
             },
             tc: {
-                appTitle: "Pulse",
+                appTitle: "Pulse HK",
                 metroNetwork: "重鐵",
                 lightRail: "輕鐵",
                 browseByLine: "按路線選擇",
@@ -283,7 +284,7 @@
                 send: "發送"
             },
             sc: {
-                appTitle: "Pulse",
+                appTitle: "Pulse HK",
                 metroNetwork: "重铁",
                 lightRail: "轻铁",
                 browseByLine: "按路线选择",
@@ -427,8 +428,8 @@
             { key: 'WHA', line: 'KTL', code: 'WHA', name: { en: 'Whampoa', tc: '黃埔', sc: '黄埔' }, lat: 22.3033, lng: 114.1897, isTerminal: true },
             { key: 'HOM', line: 'KTL', code: 'HOM', name: { en: 'Ho Man Tin', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
             { key: 'YMT', line: 'KTL', code: 'YMT', name: { en: 'Yau Ma Tei', tc: '油麻地', sc: '油麻地' }, lat: 22.3134, lng: 114.1706, isTerminal: false },
-            { key: 'MOK', line: 'KTL', code: 'MOK', name: { en: 'Mong Kok', tc: '旺角', sc: '旺角' }, lat: 22.3201, lng: 114.1697, isTerminal: false },
-            { key: 'PRE', line: 'KTL', code: 'PRE', name: { en: 'Prince Edward', tc: '太子', sc: '太子' }, lat: 22.3245, lng: 114.1681, isTerminal: false },
+            { key: 'MOK', line: 'KTL', code: 'MOK', name: { en: '旺角', tc: '旺角', sc: '旺角' }, lat: 22.3201, lng: 114.1697, isTerminal: false },
+            { key: 'PRE', line: 'KTL', code: 'PRE', name: { en: '太子', tc: '太子', sc: '太子' }, lat: 22.3245, lng: 114.1681, isTerminal: false },
             { key: 'SKM', line: 'KTL', code: 'SKM', name: { en: 'Shek Kip Mei', tc: '石硤尾', sc: '石硖尾' }, lat: 22.3323, lng: 114.1686, isTerminal: false },
             { key: 'KOT', line: 'KTL', code: 'KOT', name: { en: 'Kowloon Tong', tc: '九龍塘', sc: '九龙塘' }, lat: 22.3371, lng: 114.1758, isTerminal: false },
             { key: 'LOF', line: 'KTL', code: 'LOF', name: { en: 'Lok Fu', tc: '樂富', sc: '乐富' }, lat: 22.3377, lng: 114.1873, isTerminal: false },
@@ -816,7 +817,6 @@
             });
 
             const t = TRANSLATIONS[lang];
-            document.getElementById('uiAppTitle').textContent = t.appTitle;
             document.getElementById('lblStationSelect').textContent = t.selectStation;
             document.getElementById('uiGpsBtnText').textContent = t.nearestStation;
             document.getElementById('uiInterchangeLabel').textContent = t.connectedLines;
@@ -963,6 +963,23 @@
             }, 1000);
         }
 
+        // --- NEW/FIXED: renders the interchange badges dynamically to avoid ReferenceErrors ---
+        function renderInterchangePills(activeStations) {
+            interchangePills.innerHTML = '';
+            if (activeStations.length <= 1) {
+                interchangeBadges.classList.add('hidden');
+                return;
+            }
+            interchangeBadges.classList.remove('hidden');
+            activeStations.forEach(stn => {
+                const meta = LINE_META[stn.line];
+                const pill = document.createElement('span');
+                pill.className = `px-2 py-1 rounded-md text-[10px] font-bold border ${meta.badge}`;
+                pill.textContent = meta.name[currentLang] || meta.name.en;
+                interchangePills.appendChild(pill);
+            });
+        }
+
         async function fetchRealTimeData() {
             const t = TRANSLATIONS[currentLang];
             
@@ -974,6 +991,8 @@
             if (!targetStationObj) return;
 
             const activeStations = STATIONS.filter(s => s.key === targetStationObj.key || s.name.en === targetStationObj.name.en);
+            
+            // This function was originally missing!
             renderInterchangePills(activeStations);
 
             if (countdownTimer) clearInterval(countdownTimer);
@@ -994,13 +1013,14 @@
                 const fetchPromises = activeStations.map(async (stn) => {
                     try {
                         let url, res, data;
+                        // --- NEW: Directly calling data.gov.hk instead of /api endpoints ---
                         if (stn.line.startsWith('LRT')) {
-                            url = `/api/lrt?stop=${stn.code}`;
+                            url = `https://rt.data.gov.hk/v1/transport/mtr/lrt/getSchedule?station_id=${stn.code}`;
                             res = await fetch(url);
                             data = await res.json();
                             return { type: 'LRT', lineCode: stn.line, stn, data, success: data && data.status === 1 };
                         } else {
-                            url = `/api/mtr?line=${stn.line}&station=${stn.code}`;
+                            url = `https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=${stn.line}&sta=${stn.code}`;
                             res = await fetch(url);
                             data = await res.json();
                             return { type: 'HR', lineCode: stn.line, stn, data, success: data && (data.status === 1 || (data.data && Object.keys(data.data).length > 0)) };
@@ -1134,8 +1154,10 @@
                     let destName, minText, platText, loadFactor, carBadgeHtml = '';
 
                     if (type === 'HR') {
-                        const destObj = HEAVY_DESTINATIONS[train.dest];
-                        destName = destObj ? (destObj[currentLang] || destObj.en) : train.dest;
+                        // --- FIXED: Safely look up destination using the existing STATIONS array ---
+                        const destObj = STATIONS.find(s => s.code === train.dest);
+                        destName = destObj ? (destObj.name[currentLang] || destObj.name.en) : train.dest;
+                        
                         minText = train.ttnt === "0" ? t.arriving : `${train.ttnt}${t.min}`;
                         platText = `${t.platform}${train.plat}`;
                         loadFactor = calculateLoadHR(trains, index, isTerminal, meta.code);
