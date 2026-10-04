@@ -88,7 +88,7 @@
                     <h1 id="uiAppTitle" class="text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
                         MTR Time
                     </h1>
-                    <p id="uiSubtitle" class="text-[11px] sm:text-sm text-slate-400 font-medium">Real-time ETAs & algorithmic load prediction for Heavy & Light Rail</p>
+                    <p id="uiSubtitle" class="text-[11px] sm:text-sm text-slate-400 font-medium">Real-time ETAs & algorithmic load prediction for MTR & Light Rail</p>
                 </div>
             </div>
 
@@ -105,7 +105,7 @@
             
             <!-- Network Toggle -->
             <div class="flex p-1.5 bg-slate-950/50 border border-slate-800 rounded-xl w-full sm:w-max mx-auto sm:mx-0">
-                <button id="btnToggleHR" onclick="switchNetwork('HR')" class="flex-1 sm:flex-none px-6 py-2.5 sm:py-2 rounded-lg text-sm font-bold bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 transition">Heavy Rail</button>
+                <button id="btnToggleHR" onclick="switchNetwork('HR')" class="flex-1 sm:flex-none px-6 py-2.5 sm:py-2 rounded-lg text-sm font-bold bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 transition">MTR</button>
                 <button id="btnToggleLRT" onclick="switchNetwork('LRT')" class="flex-1 sm:flex-none px-6 py-2.5 sm:py-2 rounded-lg text-sm font-bold text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition">Light Rail</button>
             </div>
 
@@ -197,14 +197,14 @@
         let activeStationKey = 'WKS';
         
         let isInitialLoad = true; 
-        let lrtSortMode = 'route'; // 'platform' or 'route' - Default to Route based on commuter feedback
+        let lrtSortMode = 'route'; 
 
         // Translation dictionary
         const TRANSLATIONS = {
             en: {
                 appTitle: "MTR Time",
-                subtitle: "Real-time ETAs & load prediction for Heavy & Light Rail",
-                heavyRail: "Heavy Rail",
+                subtitle: "Real-time ETAs & load prediction for MTR & Light Rail",
+                mtrNetwork: "MTR",
                 lightRail: "Light Rail",
                 browseByLine: "Browse by Line",
                 browseByZone: "Browse by Zone",
@@ -225,8 +225,8 @@
                 platform: "Platform",
                 platformBrief: "Plat",
                 routePre: "Route",
-                car: "Car",
-                cars: "Cars",
+                oneCar: "1-Car",
+                twoCar: "2-Car",
                 to: "To",
                 loadComfortable: "Comfortable",
                 loadStanding: "Standing Room",
@@ -245,8 +245,8 @@
             tc: {
                 appTitle: "MTR Time 香港地鐵",
                 subtitle: "港鐵及輕鐵即時到站時間與載客量預測",
-                heavyRail: "重鐵網絡",
-                lightRail: "輕鐵網絡",
+                mtrNetwork: "港鐵",
+                lightRail: "輕鐵",
                 browseByLine: "按路線選擇",
                 browseByZone: "按區域選擇",
                 selectStation: "車站（自動連結轉乘站）",
@@ -266,8 +266,8 @@
                 platform: "月台",
                 platformBrief: "月台",
                 routePre: "路線",
-                car: "卡車廂",
-                cars: "卡車廂",
+                oneCar: "1卡",
+                twoCar: "2卡",
                 to: "往",
                 loadComfortable: "快適寬敞",
                 loadStanding: "適中企位",
@@ -286,8 +286,8 @@
             sc: {
                 appTitle: "MTR Time 香港地铁",
                 subtitle: "港铁及轻铁实时到站时间与载客量预测",
-                heavyRail: "重铁网络",
-                lightRail: "轻铁网络",
+                mtrNetwork: "港铁",
+                lightRail: "轻铁",
                 browseByLine: "按路线选择",
                 browseByZone: "按区域选择",
                 selectStation: "车站（自动链接换乘站）",
@@ -307,8 +307,8 @@
                 platform: "站台",
                 platformBrief: "站台",
                 routePre: "路线",
-                car: "节车厢",
-                cars: "节车厢",
+                oneCar: "1卡",
+                twoCar: "2卡",
                 to: "往",
                 loadComfortable: "舒适宽松",
                 loadStanding: "适中企位",
@@ -503,7 +503,7 @@
             { key: 'MOS', line: 'TML', code: 'MOS', name: { en: 'Ma On Shan', tc: '馬鞍山', sc: '马鞍山' }, lat: 22.4253, lng: 114.2319, isTerminal: false },
             { key: 'HEO', line: 'TML', code: 'HEO', name: { en: 'Heng On', tc: '恒安', sc: '恒安' }, lat: 22.4173, lng: 114.2255, isTerminal: false },
             { key: 'TSH', line: 'TML', code: 'TSH', name: { en: 'Tai Shui Hang', tc: '大水坑', sc: '大水坑' }, lat: 22.4087, lng: 114.2215, isTerminal: false },
-            { key: 'CIO', line: 'TML', code: 'CIO', name: { en: '第一城', tc: '第一城', sc: '第一城' }, lat: 22.3875, lng: 114.2036, isTerminal: false },
+            { key: 'CIO', line: 'TML', code: 'CIO', name: { en: 'City One', tc: '第一城', sc: '第一城' }, lat: 22.3875, lng: 114.2036, isTerminal: false },
             { key: 'STW', line: 'TML', code: 'STW', name: { en: 'Sha Tin Wai', tc: '沙田圍', sc: '沙田围' }, lat: 22.3807, lng: 114.1945, isTerminal: false },
             { key: 'CKT', line: 'TML', code: 'CKT', name: { en: 'Che Kung Temple', tc: '車公廟', sc: '车公庙' }, lat: 22.3755, lng: 114.1866, isTerminal: false },
             { key: 'TAW', line: 'TML', code: 'TAW', name: { en: 'Tai Wai', tc: '大圍', sc: '大围' }, lat: 22.3732, lng: 114.1783, isTerminal: false },
@@ -512,7 +512,7 @@
             { key: 'KAT', line: 'TML', code: 'KAT', name: { en: 'Kai Tak', tc: '啟德', sc: '启德' }, lat: 22.3323, lng: 114.1966, isTerminal: false },
             { key: 'SUW', line: 'TML', code: 'SUW', name: { en: 'Sung Wong Toi', tc: '宋皇臺', sc: '宋皇台' }, lat: 22.3275, lng: 114.1906, isTerminal: false },
             { key: 'TKW', line: 'TML', code: 'TKW', name: { en: 'To Kwa Wan', tc: '土瓜灣', sc: '土瓜湾' }, lat: 22.3168, lng: 114.1887, isTerminal: false },
-            { key: 'HOM', line: 'TML', code: 'HOM', name: { en: '何文田', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
+            { key: 'HOM', line: 'TML', code: 'HOM', name: { en: 'Ho Man Tin', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
             { key: 'HUH', line: 'TML', code: 'HUH', name: { en: 'Hung Hom', tc: '紅磡', sc: '红磡' }, lat: 22.3031, lng: 114.1818, isTerminal: false },
             { key: 'ETS', line: 'TML', code: 'ETS', name: { en: 'East Tsim Sha Tsui', tc: '尖東', sc: '尖东' }, lat: 22.2963, lng: 114.1748, isTerminal: false },
             { key: 'AUS', line: 'TML', code: 'AUS', name: { en: 'Austin', tc: '柯士甸', sc: '柯士甸' }, lat: 22.3045, lng: 114.1661, isTerminal: false },
@@ -769,7 +769,7 @@
             const btnLRT = document.getElementById('btnToggleLRT');
             const lblLine = document.getElementById('lblLineSelect');
             
-            btnHR.textContent = t.heavyRail;
+            btnHR.textContent = t.mtrNetwork;
             btnLRT.textContent = t.lightRail;
 
             if (net === 'HR') {
@@ -808,7 +808,6 @@
             lineSelect.value = activeLineCode;
             populateStationDropdown(activeLineCode);
             
-            // Set initial source of truth safely
             if (stationSelect.options.length > 0) {
                 const preSelectObj = STATIONS.find(s => s.code === 'TUM' && s.line === 'TML');
                 activeStationKey = preSelectObj ? preSelectObj.key : stationSelect.options[0].value;
@@ -818,7 +817,7 @@
             lineSelect.addEventListener('change', (e) => {
                 activeLineCode = e.target.value;
                 populateStationDropdown(activeLineCode);
-                activeStationKey = stationSelect.value; // capture the new default
+                activeStationKey = stationSelect.value;
                 isInitialLoad = true;
                 fetchRealTimeData();
             });
@@ -834,7 +833,7 @@
         }
 
         function forceManualRefresh() {
-            isInitialLoad = true; // Show loading spinner
+            isInitialLoad = true; 
             fetchRealTimeData();
         }
 
@@ -1064,7 +1063,7 @@
                                 </div>
                     `;
 
-                    // Inject the architectural fix: Platform vs Route toggle for Light Rail
+                    // Platform vs Route toggle for Light Rail
                     if (result.type === 'LRT' && result.success) {
                         newHtml += `
                             <div class="flex p-1 bg-slate-900 rounded-lg w-max border border-slate-800">
@@ -1096,11 +1095,11 @@
                             if (lrtSortMode === 'platform') {
                                 // Default Platform view
                                 platforms.forEach(plat => {
-                                    const platTitle = `${t.platform} ${plat.platform_id}`;
+                                    const platTitle = `${t.platform}${plat.platform_id}`;
                                     newHtml += generatePlatformHtml(meta, platTitle, 'ph-train-regional', plat.route_list || [], result.stn.isTerminal, 'LRT');
                                 });
                             } else {
-                                // New Architectural Fix: Route-based grouping view
+                                // Route-based grouping view
                                 let trainsByRoute = {};
                                 platforms.forEach(plat => {
                                     (plat.route_list || []).forEach(train => {
@@ -1112,7 +1111,7 @@
                                 
                                 const sortedRoutes = Object.keys(trainsByRoute).sort();
                                 sortedRoutes.forEach(routeNo => {
-                                    const routeTitle = `${t.routePre} ${routeNo}`;
+                                    const routeTitle = `${t.routePre}${routeNo}`;
                                     // Sort trains on this route chronologically by arriving time
                                     const sortedTrains = trainsByRoute[routeNo].sort((a, b) => {
                                         let aMins = a.time_en.includes('min') ? parseInt(a.time_en) : (a.time_en === 'arriving' ? 0 : 99);
@@ -1188,7 +1187,7 @@
             let html = `
                 <div class="glass-card rounded-2xl p-4 sm:p-5 flex flex-col h-full border-t-4 ${meta.border} shadow-lg w-full">
                     <h4 class="text-sm sm:text-base font-bold mb-4 flex items-center gap-2 text-slate-200">
-                        <i class="ph-bold ${iconClass} ${meta.text} text-xl shrink-0"></i> 
+                        <i class="ph-bold ${iconClass}${meta.text} text-xl shrink-0"></i> 
                         <span class="truncate">${title}</span>
                     </h4>
                     <div class="flex-1 space-y-3">
@@ -1198,35 +1197,38 @@
                 html += `<div class="bg-slate-900/60 rounded-xl p-6 text-center border border-slate-800 text-slate-400 text-xs font-medium">${t.noTrains}</div>`;
             } else {
                 trains.forEach((train, index) => {
-                    let destName, minText, platText, loadFactor;
+                    let destName, minText, platText, loadFactor, carBadgeHtml = '';
 
                     if (type === 'HR') {
                         const destObj = HEAVY_DESTINATIONS[train.dest];
                         destName = destObj ? (destObj[currentLang] || destObj.en) : train.dest;
-                        minText = train.ttnt === "0" ? t.arriving : `${train.ttnt} ${t.min}`;
-                        platText = `${t.platform} ${train.plat}`;
+                        minText = train.ttnt === "0" ? t.arriving : `${train.ttnt}${t.min}`;
+                        platText = `${t.platform}${train.plat}`;
                         loadFactor = calculateLoadHR(trains, index, isTerminal);
                     } else {
-                        // Both LRT and LRT_ROUTE share this parsing logic
+                        // Light Rail UI features highly visible tactical car length badge
                         let rawDestName = train.dest_en;
                         if (currentLang === 'tc') rawDestName = train.dest_ch || train.dest_en;
                         else if (currentLang === 'sc') rawDestName = tcToSc(train.dest_ch || train.dest_en);
 
-                        // If sorted by platform, show Route #. If sorted by Route, show Destination only.
-                        destName = type === 'LRT_ROUTE' ? rawDestName : `${train.route_no} ${rawDestName}`;
+                        destName = type === 'LRT_ROUTE' ? rawDestName : `${train.route_no}${rawDestName}`;
 
                         if (train.time_en === "-") minText = t.departing;
                         else if (train.time_en === "arriving") minText = t.arriving;
                         else minText = train.time_en ? train.time_en.replace('min', t.min) : '-';
 
-                        const carUnit = train.train_length > 1 ? t.cars : t.car;
-                        
-                        // If sorted by Route, we must inject the Platform number so they know where to go!
                         if (type === 'LRT_ROUTE') {
-                            platText = `<span class="text-white">${t.platformBrief} ${train.platform_id}</span> &bull; ${train.train_length} ${carUnit}`;
+                            platText = `<span class="text-white">${t.platformBrief}${train.platform_id}</span>`;
                         } else {
-                            platText = `${train.train_length} ${carUnit}`;
+                            platText = ``; // Route already in title, car length in badge
                         }
+
+                        const isTwoCar = (train.train_length === "2" || train.train_length === 2);
+                        const carBadgeText = isTwoCar ? t.twoCar : t.oneCar;
+                        const badgeClasses = isTwoCar 
+                            ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' 
+                            : 'bg-slate-700/50 text-slate-400 border-slate-600/50';
+                        carBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-bold border ${badgeClasses} tracking-wide whitespace-nowrap">${carBadgeText}</span>`;
                         
                         loadFactor = calculateLoadLRT(train);
                     }
@@ -1252,9 +1254,12 @@
                                     <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">${t.to}</p>
                                     <p class="text-base sm:text-lg font-extrabold text-white leading-tight truncate">${destName}</p>
                                 </div>
-                                <div class="text-right shrink-0">
-                                    <p class="text-xl sm:text-2xl font-black text-white tracking-tight">${minText}</p>
-                                    <p class="text-[10px] sm:text-[11px] font-semibold text-slate-400">${platText}</p>
+                                <div class="text-right shrink-0 flex flex-col items-end">
+                                    <div class="flex items-center gap-2">
+                                        ${carBadgeHtml}
+                                        <p class="text-xl sm:text-2xl font-black text-white tracking-tight">${minText}</p>
+                                    </div>
+                                    <p class="text-[10px] sm:text-[11px] font-semibold text-slate-400 mt-0.5">${platText}</p>
                                 </div>
                             </div>
                             
