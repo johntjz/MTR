@@ -698,6 +698,7 @@
         let timeRemaining = 15;
         const REFRESH_RATE = 15;
 
+        // Feedback Modal Logic
         function openFeedbackModal() {
             document.getElementById('feedbackModal').classList.remove('hidden');
         }
@@ -750,6 +751,73 @@
                 '翠': '翠', '頌': '颂', '恒': '恒'
             };
             return text.split('').map(c => scMap[c] || c).join('');
+        }
+
+        // --- DYNAMIC LOAD FACTOR ESTIMATION ALGORITHMS ---
+
+        // Returns dynamic arrival rate modifier based on time-of-day peak behaviors
+        function getDynamicLambda() {
+            const hour = new Date().getHours();
+            if ((hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19)) return 1.6;
+            if ((hour >= 10 && hour <= 17) || (hour >= 20 && hour <= 21)) return 1.0;
+            return 0.5;
+        }
+
+        function calculateLoadHR(trains, index, isTerminal, lineCode) {
+            const t1 = parseInt(trains[index].ttnt) || 0;
+            let t2 = t1 + 3; 
+            
+            // Extract dynamic headway (H_A) using time intervals between consecutive trains
+            if (index + 1 < trains.length) {
+                t2 = parseInt(trains[index + 1].ttnt) || (t1 + 3);
+            } else if (index > 0) {
+                t2 = t1 + Math.max(2, t1 - (parseInt(trains[index - 1].ttnt) || 0));
+            }
+            
+            const H_A = Math.max(1, t2 - t1); 
+            const lambda = getDynamicLambda();
+            
+            // Passenger accumulation (P ≈ λ * H_A)
+            let absoluteLoad = lambda * H_A * 150; 
+            
+            if (isTerminal) {
+                absoluteLoad += Math.max(0, 25 - (t1 * 3.5)) * 25; 
+            }
+
+            // Apply highly specific physical rolling stock capacities
+            const C_max = (lineCode === 'EAL') ? 2845 : 2496; 
+            
+            let loadFactor = (absoluteLoad / C_max) * 100;
+            return Math.min(98, Math.max(12, Math.round(loadFactor)));
+        }
+
+        function calculateLoadLRT(trains, index, train_length) {
+            let t1 = 0;
+            if (trains[index].time_en && trains[index].time_en.includes('min')) {
+                t1 = parseInt(trains[index].time_en) || 1;
+            } else if (trains[index].time_en === 'arriving') {
+                t1 = 0;
+            }
+            
+            // Extract dynamic headway (H_A) for Light Rail
+            let t2 = t1 + 6;
+            if (index + 1 < trains.length) {
+                let next_t = trains[index + 1].time_en;
+                if (next_t && next_t.includes('min')) {
+                    t2 = parseInt(next_t) || (t1 + 6);
+                }
+            }
+            
+            const H_A = Math.max(1, t2 - t1);
+            const lambda = getDynamicLambda();
+            
+            let absoluteLoad = lambda * H_A * 35; 
+            
+            // Standardized 240 passengers per vehicle multiplied by train_length
+            const C_max = 240 * train_length;
+            
+            let loadFactor = (absoluteLoad / C_max) * 100;
+            return Math.min(98, Math.max(15, Math.round(loadFactor)));
         }
 
         function toggleLrtSort(mode) {
@@ -1002,7 +1070,6 @@
             const targetStationObj = STATIONS.find(s => s.key === savedState[currentNetwork].station);
             if (!targetStationObj) return;
 
-            // INTERCHANGE LOGIC: Find all lines sharing the exact same key or English name
             const activeStations = STATIONS.filter(s => s.key === targetStationObj.key || s.name.en === targetStationObj.name.en);
             renderInterchangePills(activeStations);
 
@@ -1145,46 +1212,6 @@
             }
         }
 
-        function renderInterchangePills(activeStations) {
-            if (activeStations.length <= 1) {
-                interchangeBadges.classList.add('hidden');
-                interchangeBadges.classList.remove('flex');
-                return;
-            }
-
-            interchangePills.innerHTML = '';
-            activeStations.forEach(stn => {
-                const meta = LINE_META[stn.line];
-                if (meta) {
-                    const pill = document.createElement('span');
-                    pill.className = `text-[11px] sm:text-xs px-2 sm:px-2.5 py-1 rounded-full font-medium border ${meta.badge}`;
-                    pill.textContent = meta.name[currentLang] || meta.name.en;
-                    interchangePills.appendChild(pill);
-                }
-            });
-
-            interchangeBadges.classList.remove('hidden');
-            interchangeBadges.classList.add('flex');
-        }
-
-        function calculateLoadHR(trains, index, isTerminal) {
-            const t1 = parseInt(trains[index].ttnt) || 0;
-            let loadFactor = isTerminal 
-                ? Math.max(8, 25 - (t1 * 3.5)) 
-                : 25 + (Math.max(0, (index + 1 < trains.length ? parseInt(trains[index + 1].ttnt) || (t1 + 3) : t1 + 3) - t1) * 7);
-            return Math.min(98, Math.max(12, Math.round(loadFactor)));
-        }
-
-        function calculateLoadLRT(train) {
-            let mins = 0;
-            if (train.time_en && train.time_en.includes('min')) {
-                mins = parseInt(train.time_en) || 1;
-            }
-            let load = 65 - (mins * 6); 
-            if (train.train_length === 1) load += 28; 
-            return Math.min(98, Math.max(15, Math.round(load)));
-        }
-
         function generatePlatformHtml(meta, title, iconClass, trains, isTerminal, type, isSingleColumn = false) {
             const t = TRANSLATIONS[currentLang];
             const colSpanClass = isSingleColumn ? 'md:col-span-2' : '';
@@ -1208,7 +1235,7 @@
                         destName = destObj ? (destObj[currentLang] || destObj.en) : train.dest;
                         minText = train.ttnt === "0" ? t.arriving : `${train.ttnt}${t.min}`;
                         platText = `${t.platform}${train.plat}`;
-                        loadFactor = calculateLoadHR(trains, index, isTerminal);
+                        loadFactor = calculateLoadHR(trains, index, isTerminal, meta.code);
                     } else {
                         let rawDestName = train.dest_en;
                         if (currentLang === 'tc') rawDestName = train.dest_ch || train.dest_en;
@@ -1233,7 +1260,7 @@
                             : 'bg-slate-700/50 text-slate-400 border-slate-600/50';
                         carBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-bold border ${badgeClasses} tracking-wide whitespace-nowrap">${carBadgeText}</span>`;
                         
-                        loadFactor = calculateLoadLRT(train);
+                        loadFactor = calculateLoadLRT(trains, index, train.train_length);
                     }
                     
                     let barColor = 'bg-emerald-500';
