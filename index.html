@@ -698,7 +698,6 @@
         let timeRemaining = 15;
         const REFRESH_RATE = 15;
 
-        // Feedback Modal Logic
         function openFeedbackModal() {
             document.getElementById('feedbackModal').classList.remove('hidden');
         }
@@ -1074,8 +1073,24 @@
                         const stationData = result.data.data[`${result.lineCode}-${result.stn.code}`];
                         if (stationData) {
                             if(stationData.curr_time) lastUpdateTime = stationData.curr_time.split(' ')[1] || lastUpdateTime;
-                            newHtml += generatePlatformHtml(meta, t.dirUp, 'ph-arrow-circle-up', stationData.UP || [], result.stn.isTerminal, 'HR');
-                            newHtml += generatePlatformHtml(meta, t.dirDown, 'ph-arrow-circle-down', stationData.DOWN || [], result.stn.isTerminal, 'HR');
+                            
+                            const upTrains = stationData.UP || [];
+                            const downTrains = stationData.DOWN || [];
+                            
+                            if (result.stn.isTerminal) {
+                                const hasUp = upTrains.length > 0;
+                                const hasDown = downTrains.length > 0;
+                                const isSingleActive = (hasUp && !hasDown) || (!hasUp && hasDown);
+                                
+                                if (hasUp) newHtml += generatePlatformHtml(meta, t.dirUp, 'ph-arrow-circle-up', upTrains, true, 'HR', isSingleActive);
+                                if (hasDown) newHtml += generatePlatformHtml(meta, t.dirDown, 'ph-arrow-circle-down', downTrains, true, 'HR', isSingleActive);
+                                if (!hasUp && !hasDown) {
+                                    newHtml += `<div class="col-span-full glass-card rounded-2xl p-6 text-center text-slate-400">${t.noTrains}</div>`;
+                                }
+                            } else {
+                                newHtml += generatePlatformHtml(meta, t.dirUp, 'ph-arrow-circle-up', upTrains, false, 'HR');
+                                newHtml += generatePlatformHtml(meta, t.dirDown, 'ph-arrow-circle-down', downTrains, false, 'HR');
+                            }
                         } else {
                             newHtml += `<div class="col-span-full glass-card rounded-2xl p-6 text-center text-slate-400">${t.noTrains}</div>`;
                         }
@@ -1170,10 +1185,11 @@
             return Math.min(98, Math.max(15, Math.round(load)));
         }
 
-        function generatePlatformHtml(meta, title, iconClass, trains, isTerminal, type) {
+        function generatePlatformHtml(meta, title, iconClass, trains, isTerminal, type, isSingleColumn = false) {
             const t = TRANSLATIONS[currentLang];
+            const colSpanClass = isSingleColumn ? 'md:col-span-2' : '';
             let html = `
-                <div class="glass-card rounded-2xl p-4 sm:p-5 flex flex-col h-full border-t-4 ${meta.border} shadow-lg w-full">
+                <div class="glass-card rounded-2xl p-4 sm:p-5 flex flex-col h-full border-t-4 ${meta.border} shadow-lg w-full${colSpanClass}">
                     <h4 class="text-sm sm:text-base font-bold mb-4 flex items-center gap-2 text-slate-200">
                         <i class="ph-bold ${iconClass}${meta.text} text-xl shrink-0"></i> 
                         <span class="truncate">${title}</span>
