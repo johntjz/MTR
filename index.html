@@ -1,943 +1,1077 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<html lang="en" class="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TransitPulse HK - MTR & Light Rail Real-Time Arrival</title>
-  
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            mtr: {
-              ktl: '#00AF41', // Kwun Tong Line Green
-              twl: '#E60012', // Tsuen Wan Line Red
-              isl: '#007DC3', // Island Line Blue
-              sil: '#B5BD00', // South Island Line Lime
-              tkl: '#A35EB2', // Tseung Kwan O Line Purple
-              tcl: '#F38B00', // Tung Chung Line Orange
-              ael: '#00888A', // Airport Express Teal
-              eal: '#53B7E8', // East Rail Line Light Blue
-              tml: '#923011', // Tuen Ma Line Brown
-              drl: '#F550A1', // Disneyland Resort Line Pink
-              lrt: '#E97200', // Light Rail Orange
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransitPulse HK MTR - Real-Time Network Estimator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                        }
+                    }
+                }
             }
-          }
         }
-      }
-    }
-  </script>
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Inter', 'Noto Sans TC', 'Noto Sans SC', sans-serif;
+            background-color: #0b0f19;
+            color: #f1f5f9;
+        }
 
-  <!-- Google Fonts: Inter -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
 
-  <!-- Font Awesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        .load-bar {
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s ease;
+        }
 
-  <style>
-    body {
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    }
-    /* Custom subtle scrollbar */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: rgba(15, 23, 42, 0.6);
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(51, 65, 85, 0.8);
-      border-radius: 9999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(71, 85, 105, 1);
-    }
-    /* Pulse animation glow */
-    .pulse-glow {
-      box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
-    }
-  </style>
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .lang-btn.active {
+            background-color: #10b981;
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+        }
+    </style>
 </head>
-<body class="h-full flex flex-col overflow-hidden bg-slate-950 text-slate-100">
-
-  <!-- Top Navigation Header -->
-  <header class="flex-none bg-slate-900/90 backdrop-blur border-b border-slate-800 px-4 py-3 z-30">
-    <div class="max-w-6xl mx-auto flex items-center justify-between gap-3">
-      <!-- App Branding -->
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-rose-900/30">
-          <i class="fa-solid font-bold text-lg fa-train-subway"></i>
-        </div>
-        <div>
-          <div class="flex items-center space-x-2">
-            <h1 class="text-base font-bold tracking-tight text-white leading-none">TransitPulse <span class="text-rose-500">HK</span></h1>
-            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">MTR / LRT</span>
-          </div>
-          <p class="text-xs text-slate-400 mt-0.5" id="header-subtitle">Real-Time Train Arrival Tracker</p>
-        </div>
-      </div>
-
-      <!-- Header Controls: Refresh Timer & Language Switcher -->
-      <div class="flex items-center space-x-3">
-        <!-- 30-Second Refresh Indicator -->
-        <div class="hidden sm:flex items-center space-x-2 bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-lg text-xs" title="Auto-resyncs every 30s without scroll jump">
-          <div class="relative w-4 h-4 flex items-center justify-center">
-            <svg class="w-4 h-4 transform -rotate-90">
-              <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" class="text-slate-700" fill="transparent"/>
-              <circle id="timer-ring" cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" class="text-rose-500 transition-all duration-1000 ease-linear" fill="transparent" stroke-dasharray="37.7" stroke-dashoffset="0"/>
-            </svg>
-            <i id="sync-icon" class="fa-solid fa-arrows-rotate text-[8px] text-slate-300 absolute"></i>
-          </div>
-          <span class="text-slate-300 font-mono text-xs"><span id="timer-count">30</span>s</span>
-        </div>
-
-        <!-- Language Dropdown -->
-        <div class="relative">
-          <select id="lang-select" onchange="changeLanguage(this.value)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg px-2.5 py-1.5 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer transition">
-            <option value="en">English</option>
-            <option value="zh-HK">繁體中文</option>
-            <option value="zh-CN">简体中文</option>
-          </select>
-        </div>
-
-        <!-- Manual Refresh Button -->
-        <button onclick="triggerManualRefresh()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 text-xs flex items-center justify-center transition active:scale-95" title="Refresh Now">
-          <i id="refresh-btn-icon" class="fa-solid fa-rotate-right"></i>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- Main View Container -->
-  <main class="flex-1 flex flex-col min-h-0 max-w-6xl w-full mx-auto p-3 sm:p-4 gap-4">
-
-    <!-- Scroll Fix Status Bar -->
-    <div class="bg-slate-900/60 border border-emerald-500/20 rounded-xl px-3 py-2 text-xs text-slate-300 flex items-center justify-between gap-2 shadow-sm">
-      <div class="flex items-center space-x-2">
-        <span class="inline-flex items-center justify-center w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span id="smooth-sync-text" class="text-slate-300">Background Sync Active: DOM scroll locked, auto-refreshing every <strong>30 seconds</strong>.</span>
-      </div>
-      <div class="hidden md:flex items-center space-x-2 text-slate-400 text-[11px]">
-        <i class="fa-solid fa-shield-halved text-emerald-400"></i>
-        <span id="mtr-optimal-text">30s Interval optimized for MTR schedule stability</span>
-      </div>
-    </div>
-
-    <!-- Mode Selector: Heavy Rail vs Light Rail -->
-    <div class="flex border-b border-slate-800 bg-slate-900/40 p-1 rounded-xl">
-      <button id="tab-heavy" onclick="switchNetwork('heavy')" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center justify-center space-x-2 bg-rose-600 text-white shadow-md">
-        <i class="fa-solid fa-train"></i>
-        <span id="label-heavy-rail">MTR Heavy Rail</span>
-      </button>
-      <button id="tab-lrt" onclick="switchNetwork('lrt')" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center justify-center space-x-2 text-slate-400 hover:text-slate-200">
-        <i class="fa-solid fa-train-tram"></i>
-        <span id="label-light-rail">Light Rail (輕鐵)</span>
-      </button>
-    </div>
-
-    <!-- Filter Control Panel -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-3 sm:p-4 shadow-xl">
-      
-      <!-- HEAVY RAIL FILTERS -->
-      <div id="heavy-controls" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        <!-- Line Selector -->
-        <div>
-          <label class="block text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1" id="lbl-select-line">Select Line</label>
-          <select id="heavy-line-select" onchange="onHeavyLineChange()" class="w-full bg-slate-800 border border-slate-700 text-slate-100 text-xs sm:text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-rose-500 focus:outline-none">
-            <!-- Populated via JS -->
-          </select>
-        </div>
-
-        <!-- Station Selector -->
-        <div>
-          <label class="block text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1" id="lbl-select-station">Select Station</label>
-          <select id="heavy-station-select" onchange="onHeavyStationChange()" class="w-full bg-slate-800 border border-slate-700 text-slate-100 text-xs sm:text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-rose-500 focus:outline-none">
-            <!-- Populated via JS -->
-          </select>
-        </div>
-
-        <!-- Quick Direction Filter -->
-        <div class="sm:col-span-2 md:col-span-1">
-          <label class="block text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1" id="lbl-filter-dir">Direction Filter</label>
-          <div class="grid grid-cols-3 gap-1 bg-slate-800 p-1 rounded-lg border border-slate-700 text-xs">
-            <button id="dir-all" onclick="setDirectionFilter('ALL')" class="py-1.5 rounded font-medium text-center transition bg-slate-700 text-white">All</button>
-            <button id="dir-up" onclick="setDirectionFilter('UP')" class="py-1.5 rounded font-medium text-center transition text-slate-400 hover:text-white">Up</button>
-            <button id="dir-down" onclick="setDirectionFilter('DOWN')" class="py-1.5 rounded font-medium text-center transition text-slate-400 hover:text-white">Down</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- LIGHT RAIL FILTERS -->
-      <div id="lrt-controls" class="hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        <!-- Region Selector -->
-        <div>
-          <label class="block text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1" id="lbl-select-region">Region / District</label>
-          <select id="lrt-region-select" onchange="onLrtRegionChange()" class="w-full bg-slate-800 border border-slate-700 text-slate-100 text-xs sm:text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-amber-500 focus:outline-none">
-            <!-- Populated via JS (Tuen Mun, Yuen Long, Tin Shui Wai) -->
-          </select>
-        </div>
-
-        <!-- Light Rail Stop Selector -->
-        <div>
-          <label class="block text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1" id="lbl-select-lrt-stop">Light Rail Stop</label>
-          <select id="lrt-stop-select" onchange="onLrtStopChange()" class="w-full bg-slate-800 border border-slate-700 text-slate-100 text-xs sm:text-sm rounded-lg p-2.5 focus:ring-2 focus:ring-amber-500 focus:outline-none">
-            <!-- Populated via JS -->
-          </select>
-        </div>
-
-        <!-- Quick Route Filter Search -->
-        <div class="sm:col-span-2 md:col-span-1">
-          <label class="block text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1" id="lbl-lrt-route-filter">Search LRT Route</label>
-          <div class="relative">
-            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-xs text-slate-500"></i>
-            <input type="text" id="lrt-route-search" oninput="onLrtSearchInput()" placeholder="Filter route e.g. 505, 751..." class="w-full bg-slate-800 border border-slate-700 pl-8 pr-3 py-2 text-xs sm:text-sm rounded-lg text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-amber-500 focus:outline-none">
-          </div>
-        </div>
-      </div>
-
-    </section>
-
-    <!-- Scrollable Arrival Content Display Area -->
-    <!-- Scroll Jump Fix implementation keeps window and div scrollTop stable during updates -->
-    <div id="arrival-scroll-container" class="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3 rounded-xl">
-      
-      <!-- Arrival Cards Container -->
-      <div id="arrival-cards-wrapper" class="space-y-3">
-        <!-- Dynamic Arrival Cards Injected Here -->
-      </div>
-
-    </div>
-
-    <!-- Footer Stats / Last Updated Time -->
-    <footer class="flex-none bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-2 flex flex-wrap items-center justify-between text-xs text-slate-400 gap-2">
-      <div class="flex items-center space-x-2">
-        <i class="fa-solid fa-clock text-slate-500"></i>
-        <span><span id="lbl-last-updated">Last Updated:</span> <span id="last-updated-time" class="text-slate-200 font-mono">--:--:--</span></span>
-      </div>
-      <div class="flex items-center space-x-4 text-[11px]">
-        <span class="flex items-center space-x-1">
-          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span id="lbl-status-normal">Normal Service</span>
-        </span>
-        <span class="text-slate-600">|</span>
-        <span id="lbl-data-source">Source: GovHK Open Data / MTR API</span>
-      </div>
-    </footer>
-
-  </main>
-
-  <script>
-    /* =========================================================================
-       DATA STRUCTURES & TRANSLATIONS
-       ========================================================================= */
-
-    const REFRESH_INTERVAL_SECONDS = 30; // 30 seconds for MTR/LRT optimization
-    let currentLanguage = 'en';
-    let currentNetwork = 'heavy'; // 'heavy' | 'lrt'
-    let timerCountdown = REFRESH_INTERVAL_SECONDS;
-    let timerInterval = null;
-    let directionFilter = 'ALL'; // 'ALL', 'UP', 'DOWN'
-    let selectedLrtRouteSearch = '';
-
-    // Multi-Language Dictionary
-    const translations = {
-      'en': {
-        headerSubtitle: 'Real-Time Train Arrival Tracker',
-        smoothSync: 'Background Sync Active: DOM scroll locked, auto-refreshing every 30 seconds.',
-        mtrOptimal: '30s Interval optimized for MTR schedule stability',
-        heavyRail: 'MTR Heavy Rail',
-        lightRail: 'Light Rail (輕鐵)',
-        selectLine: 'Select Line',
-        selectStation: 'Select Station',
-        filterDir: 'Direction Filter',
-        selectRegion: 'Region / District',
-        selectLrtStop: 'Light Rail Stop',
-        lrtRouteFilter: 'Search LRT Route',
-        lastUpdated: 'Last Updated:',
-        statusNormal: 'Normal Service',
-        dataSource: 'Source: GovHK Open Data / MTR API',
-        minLeft: 'mins',
-        arrivingNow: 'Arriving',
-        departing: 'Departing',
-        platform: 'Platform',
-        towards: 'Towards',
-        cars: 'Cars',
-        noData: 'No upcoming train arrivals scheduled at this time.',
-        tuenMunRegion: 'Tuen Mun Region (屯門區)',
-        yuenLongRegion: 'Yuen Long Region (元朗區)',
-        tinShuiWaiRegion: 'Tin Shui Wai Region (天水圍區)',
-        upbound: 'Upbound',
-        downbound: 'Downbound',
-        refreshBtnTip: 'Refresh schedules'
-      },
-      'zh-HK': {
-        headerSubtitle: '港鐵及輕鐵即時到站列車資訊',
-        smoothSync: '背景無縫更新中：已鎖定滾動位置，每 30 秒自動同步最新班次。',
-        mtrOptimal: '30秒更新頻率為港鐵/輕鐵系統最佳營運間隔',
-        heavyRail: '港鐵重鐵綫',
-        lightRail: '輕鐵網絡',
-        selectLine: '選擇鐵路綫',
-        selectStation: '選擇車站',
-        filterDir: '方向篩選',
-        selectRegion: '選擇區域',
-        selectLrtStop: '選擇輕鐵站',
-        lrtRouteFilter: '搜尋輕鐵路線',
-        lastUpdated: '最後更新：',
-        statusNormal: '服務正常',
-        dataSource: '數據來源：香港政府資料一線通 / 港鐵 API',
-        minLeft: '分鐘',
-        arrivingNow: '即將到站',
-        departing: '正在離開',
-        platform: '月台',
-        towards: '開往',
-        cars: '卡',
-        noData: '現時暫無即時到站班次資料。',
-        tuenMunRegion: '屯門區',
-        yuenLongRegion: '元朗區',
-        tinShuiWaiRegion: '天水圍區',
-        upbound: '上行',
-        downbound: '下行',
-        refreshBtnTip: '立即更新班次'
-      },
-      'zh-CN': {
-        headerSubtitle: '港铁及轻铁实时到站列车信息',
-        smoothSync: '背景无缝更新中：已锁定滚动位置，每 30 秒自动同步最新班次。',
-        mtrOptimal: '30秒更新频率为港铁/轻铁系统最佳运营间隔',
-        heavyRail: '港铁重铁线',
-        lightRail: '轻铁网络',
-        selectLine: '选择铁路线',
-        selectStation: '选择车站',
-        filterDir: '方向筛选',
-        selectRegion: '选择区域',
-        selectLrtStop: '选择轻铁站',
-        lrtRouteFilter: '搜索轻铁路线',
-        lastUpdated: '最后更新：',
-        statusNormal: '服务正常',
-        dataSource: '数据来源：香港政府资料一线通 / 港铁 API',
-        minLeft: '分钟',
-        arrivingNow: '即将到站',
-        departing: '正在离开',
-        platform: '站台',
-        towards: '开往',
-        cars: '节',
-        noData: '现时暂无实时到站班次资料。',
-        tuenMunRegion: '屯门区',
-        yuenLongRegion: '元朗区',
-        tinShuiWaiRegion: '天水围区',
-        upbound: '上行',
-        downbound: '下行',
-        refreshBtnTip: '立即更新班次'
-      }
-    };
-
-    // Heavy Rail Lines & Stations Data
-    const HEAVY_RAIL_LINES = [
-      {
-        code: 'KTL',
-        name: { en: 'Kwun Tong Line', 'zh-HK': '觀塘綫', 'zh-CN': '觀塘线' },
-        color: '#00AF41',
-        bgColor: 'bg-emerald-600',
-        textColor: 'text-emerald-400',
-        stations: [
-          { code: 'WHA', name: { en: 'Whampoa', 'zh-HK': '黃埔', 'zh-CN': '黄埔' } },
-          { code: 'HOM', name: { en: 'Ho Man Tin', 'zh-HK': '何文田', 'zh-CN': '何文田' } },
-          { code: 'YMT', name: { en: 'Yau Ma Tei', 'zh-HK': '油麻地', 'zh-CN': '油麻地' } },
-          { code: 'MOK', name: { en: 'Mong Kok', 'zh-HK': '旺角', 'zh-CN': '旺角' } },
-          { code: 'PRE', name: { en: 'Prince Edward', 'zh-HK': '太子', 'zh-CN': '太子' } },
-          { code: 'SKM', name: { en: 'Shek Kip Mei', 'zh-HK': '石硤尾', 'zh-CN': '石硖尾' } },
-          { code: 'KOT', name: { en: 'Kowloon Tong', 'zh-HK': '九龍塘', 'zh-CN': '九龙塘' } },
-          { code: 'LOF', name: { en: 'Lok Fu', 'zh-HK': '樂富', 'zh-CN': '乐富' } },
-          { code: 'WTS', name: { en: 'Wong Tai Sin', 'zh-HK': '黃大仙', 'zh-CN': '黄大仙' } },
-          { code: 'DIH', name: { en: 'Diamond Hill', 'zh-HK': '鑽石山', 'zh-CN': '钻石山' } },
-          { code: 'KOB', name: { en: 'Kowloon Bay', 'zh-HK': '九龍灣', 'zh-CN': '九龙湾' } },
-          { code: 'NTK', name: { en: 'Ngau Tau Kok', 'zh-HK': '牛頭角', 'zh-CN': '牛头角' } },
-          { code: 'KWT', name: { en: 'Kwun Tong', 'zh-HK': '觀塘', 'zh-CN': '觀塘' } },
-          { code: 'LAT', name: { en: 'Lam Tin', 'zh-HK': '藍田', 'zh-CN': '蓝田' } },
-          { code: 'YAT', name: { en: 'Yau Tong', 'zh-HK': '油塘', 'zh-CN': '油塘' } },
-          { code: 'TIK', name: { en: 'Tiu Keng Leng', 'zh-HK': '調景嶺', 'zh-CN': '调景岭' } }
-        ]
-      },
-      {
-        code: 'TWL',
-        name: { en: 'Tsuen Wan Line', 'zh-HK': '荃灣綫', 'zh-CN': '荃灣线' },
-        color: '#E60012',
-        bgColor: 'bg-red-600',
-        textColor: 'text-red-400',
-        stations: [
-          { code: 'CEN', name: { en: 'Central', 'zh-HK': '中環', 'zh-CN': '中环' } },
-          { code: 'ADM', name: { en: 'Admiralty', 'zh-HK': '金鐘', 'zh-CN': '金钟' } },
-          { code: 'TST', name: { en: 'Tsim Sha Tsui', 'zh-HK': '尖沙咀', 'zh-CN': '尖沙咀' } },
-          { code: 'JOR', name: { en: 'Jordan', 'zh-HK': '佐敦', 'zh-CN': '佐敦' } },
-          { code: 'YMT', name: { en: 'Yau Ma Tei', 'zh-HK': '油麻地', 'zh-CN': '油麻地' } },
-          { code: 'MOK', name: { en: 'Mong Kok', 'zh-HK': '旺角', 'zh-CN': '旺角' } },
-          { code: 'PRE', name: { en: 'Prince Edward', 'zh-HK': '太子', 'zh-CN': '太子' } },
-          { code: 'SSP', name: { en: 'Sham Shui Po', 'zh-HK': '深水埗', 'zh-CN': '深水埗' } },
-          { code: 'CSW', name: { en: 'Cheung Sha Wan', 'zh-HK': '長沙灣', 'zh-CN': '长沙湾' } },
-          { code: 'LCK', name: { en: 'Lai Chi Kok', 'zh-HK': '荔枝角', 'zh-CN': '荔枝角' } },
-          { code: 'MEF', name: { en: 'Mei Foo', 'zh-HK': '美孚', 'zh-CN': '美孚' } },
-          { code: 'KWF', name: { en: 'Kwai Fong', 'zh-HK': '葵芳', 'zh-CN': '葵芳' } },
-          { code: 'KHI', name: { en: 'Kwai Hing', 'zh-HK': '葵興', 'zh-CN': '葵兴' } },
-          { code: 'TWO', name: { en: 'Tai Wo Hau', 'zh-HK': '大窩口', 'zh-CN': '大窝口' } },
-          { code: 'TSW', name: { en: 'Tsuen Wan', 'zh-HK': '荃灣', 'zh-CN': '荃灣' } }
-        ]
-      },
-      {
-        code: 'ISL',
-        name: { en: 'Island Line', 'zh-HK': '港島綫', 'zh-CN': '港岛线' },
-        color: '#007DC3',
-        bgColor: 'bg-blue-600',
-        textColor: 'text-blue-400',
-        stations: [
-          { code: 'KET', name: { en: 'Kennedy Town', 'zh-HK': '堅尼地城', 'zh-CN': '坚尼地城' } },
-          { code: 'HKU', name: { en: 'HKU', 'zh-HK': '香港大學', 'zh-CN': '香港大学' } },
-          { code: 'SYP', name: { en: 'Sai Ying Pun', 'zh-HK': '西營盤', 'zh-CN': '西营盘' } },
-          { code: 'SHW', name: { en: 'Sheung Wan', 'zh-HK': '上環', 'zh-CN': '上环' } },
-          { code: 'CEN', name: { en: 'Central', 'zh-HK': '中環', 'zh-CN': '中环' } },
-          { code: 'ADM', name: { en: 'Admiralty', 'zh-HK': '金鐘', 'zh-CN': '金钟' } },
-          { code: 'WAC', name: { en: 'Wan Chai', 'zh-HK': '灣仔', 'zh-CN': '湾仔' } },
-          { code: 'CAB', name: { en: 'Causeway Bay', 'zh-HK': '銅鑼灣', 'zh-CN': '铜锣湾' } },
-          { code: 'TIH', name: { en: 'Tin Hau', 'zh-HK': '天后', 'zh-CN': '天后' } },
-          { code: 'FOH', name: { en: 'Fortress Hill', 'zh-HK': '炮台山', 'zh-CN': '炮台山' } },
-          { code: 'NOP', name: { en: 'North Point', 'zh-HK': '北角', 'zh-CN': '北角' } },
-          { code: 'QUB', name: { en: 'Quarry Bay', 'zh-HK': '鰂魚涌', 'zh-CN': '鲗鱼涌' } },
-          { code: 'TAK', name: { en: 'Tai Koo', 'zh-HK': '太古', 'zh-CN': '太古' } },
-          { code: 'SWH', name: { en: 'Sai Wan Ho', 'zh-HK': '西灣河', 'zh-CN': '西湾河' } },
-          { code: 'SKW', name: { en: 'Shau Kei Wan', 'zh-HK': '筲箕灣', 'zh-CN': '筲箕湾' } },
-          { code: 'HFC', name: { en: 'Heng Fa Chuen', 'zh-HK': '杏花邨', 'zh-CN': '杏花邨' } },
-          { code: 'CHW', name: { en: 'Chai Wan', 'zh-HK': '柴灣', 'zh-CN': '柴湾' } }
-        ]
-      },
-      {
-        code: 'TML',
-        name: { en: 'Tuen Ma Line', 'zh-HK': '屯馬綫', 'zh-CN': '屯马线' },
-        color: '#923011',
-        bgColor: 'bg-amber-900',
-        textColor: 'text-amber-500',
-        stations: [
-          { code: 'TUM', name: { en: 'Tuen Mun', 'zh-HK': '屯門', 'zh-CN': '屯门' } },
-          { code: 'SIH', name: { en: 'Siu Hong', 'zh-HK': '兆康', 'zh-CN': '兆康' } },
-          { code: 'TIS', name: { en: 'Tin Shui Wai', 'zh-HK': '天水圍', 'zh-CN': '天水围' } },
-          { code: 'YUL', name: { en: 'Yuen Long', 'zh-HK': '元朗', 'zh-CN': '元朗' } },
-          { code: 'LOP', name: { en: 'Long Ping', 'zh-HK': '朗屏', 'zh-CN': '朗屏' } },
-          { code: 'KSR', name: { en: 'Kam Sheung Road', 'zh-HK': '錦上路', 'zh-CN': '锦上路' } },
-          { code: 'TWW', name: { en: 'Tsuen Wan West', 'zh-HK': '荃灣西', 'zh-CN': '荃灣西' } },
-          { code: 'MEF', name: { en: 'Mei Foo', 'zh-HK': '美孚', 'zh-CN': '美孚' } },
-          { code: 'NAC', name: { en: 'Nam Cheong', 'zh-HK': '南昌', 'zh-CN': '南昌' } },
-          { code: 'AUS', name: { en: 'Austin', 'zh-HK': '柯士甸', 'zh-CN': '柯士甸' } },
-          { code: 'EAS', name: { en: 'East Tsim Sha Tsui', 'zh-HK': '尖東', 'zh-CN': '尖东' } },
-          { code: 'HUH', name: { en: 'Hung Hom', 'zh-HK': '紅磡', 'zh-CN': '红磡' } },
-          { code: 'HOM', name: { en: 'Ho Man Tin', 'zh-HK': '何文田', 'zh-CN': '何文田' } },
-          { code: 'TKW', name: { en: 'To Kwa Wan', 'zh-HK': '土瓜灣', 'zh-CN': '土瓜湾' } },
-          { code: 'SUW', name: { en: 'Sung Wong Toi', 'zh-HK': '宋皇臺', 'zh-CN': '宋皇台' } },
-          { code: 'KAT', name: { en: 'Kai Tak', 'zh-HK': '啟德', 'zh-CN': '启德' } },
-          { code: 'DIH', name: { en: 'Diamond Hill', 'zh-HK': '鑽石山', 'zh-CN': '钻石山' } },
-          { code: 'TAW', name: { en: 'Tai Wai', 'zh-HK': '大圍', 'zh-CN': '大围' } },
-          { code: 'MOS', name: { en: 'Ma On Shan', 'zh-HK': '馬鞍山', 'zh-CN': '马鞍山' } },
-          { code: 'WKS', name: { en: 'Wu Kai Sha', 'zh-HK': '烏溪沙', 'zh-CN': '乌溪沙' } }
-        ]
-      },
-      {
-        code: 'EAL',
-        name: { en: 'East Rail Line', 'zh-HK': '東鐵綫', 'zh-CN': '东铁线' },
-        color: '#53B7E8',
-        bgColor: 'bg-sky-500',
-        textColor: 'text-sky-300',
-        stations: [
-          { code: 'ADM', name: { en: 'Admiralty', 'zh-HK': '金鐘', 'zh-CN': '金钟' } },
-          { code: 'EXC', name: { en: 'Exhibition Centre', 'zh-HK': '會展', 'zh-CN': '会展' } },
-          { code: 'HUH', name: { en: 'Hung Hom', 'zh-HK': '紅磡', 'zh-CN': '红磡' } },
-          { code: 'MKK', name: { en: 'Mong Kok East', 'zh-HK': '旺角東', 'zh-CN': '旺角东' } },
-          { code: 'KOT', name: { en: 'Kowloon Tong', 'zh-HK': '九龍塘', 'zh-CN': '九龙塘' } },
-          { code: 'TAW', name: { en: 'Tai Wai', 'zh-HK': '大圍', 'zh-CN': '大围' } },
-          { code: 'SHT', name: { en: 'Sha Tin', 'zh-HK': '沙田', 'zh-CN': '沙田' } },
-          { code: 'FOT', name: { en: 'Fo Tan', 'zh-HK': '火炭', 'zh-CN': '火炭' } },
-          { code: 'UNI', name: { en: 'University', 'zh-HK': '大學', 'zh-CN': '大学' } },
-          { code: 'TAP', name: { en: 'Tai Po Market', 'zh-HK': '大埔墟', 'zh-CN': '大埔墟' } },
-          { code: 'TWO', name: { en: 'Tai Wo', 'zh-HK': '太和', 'zh-CN': '太和' } },
-          { code: 'FAN', name: { en: 'Fanling', 'zh-HK': '粉嶺', 'zh-CN': '粉岭' } },
-          { code: 'SHS', name: { en: 'Sheung Shui', 'zh-HK': '上水', 'zh-CN': '上水' } },
-          { code: 'LOW', name: { en: 'Lo Wu', 'zh-HK': '羅湖', 'zh-CN': '罗湖' } },
-          { code: 'LKM', name: { en: 'Lok Ma Chau', 'zh-HK': '落馬洲', 'zh-CN': '落马洲' } }
-        ]
-      },
-      {
-        code: 'TCL',
-        name: { en: 'Tung Chung Line', 'zh-HK': '東湧綫', 'zh-CN': '东涌线' },
-        color: '#F38B00',
-        bgColor: 'bg-orange-500',
-        textColor: 'text-orange-400',
-        stations: [
-          { code: 'HOK', name: { en: 'Hong Kong', 'zh-HK': '香港', 'zh-CN': '香港' } },
-          { code: 'KOW', name: { en: 'Kowloon', 'zh-HK': '九龍', 'zh-CN': '九龙' } },
-          { code: 'OLY', name: { en: 'Olympic', 'zh-HK': '奧運', 'zh-CN': '奥运' } },
-          { code: 'NAC', name: { en: 'Nam Cheong', 'zh-HK': '南昌', 'zh-CN': '南昌' } },
-          { code: 'LAK', name: { en: 'Lai King', 'zh-HK': '荔景', 'zh-CN': '荔景' } },
-          { code: 'TSY', name: { en: 'Tsing Yi', 'zh-HK': '青衣', 'zh-CN': '青衣' } },
-          { code: 'SUN', name: { en: 'Sunny Bay', 'zh-HK': '欣澳', 'zh-CN': '欣澳' } },
-          { code: 'TCC', name: { en: 'Tung Chung', 'zh-HK': '東涌', 'zh-CN': '东涌' } }
-        ]
-      }
-    ];
-
-    // Light Rail Regions & Detailed Stops Data
-    const LIGHT_RAIL_REGIONS = [
-      {
-        id: 'tuen_mun',
-        nameKey: 'tuenMunRegion',
-        stops: [
-          { id: '1', name: { en: 'Tuen Mun Ferry Pier', 'zh-HK': '屯門碼頭', 'zh-CN': '屯门码头' }, routes: ['507', '614', '614P', '615', '615P'] },
-          { id: '20', name: { en: 'Siu Hei', 'zh-HK': '兆禧', 'zh-CN': '兆禧' }, routes: ['507', '614P', '615P'] },
-          { id: '30', name: { en: 'Tuen Mun Central', 'zh-HK': '屯門市中心', 'zh-CN': '屯门市中心' }, routes: ['505', '507', '614', '614P', '751'] },
-          { id: '80', name: { en: 'Town Centre', 'zh-HK': '市中心', 'zh-CN': '市中心' }, routes: ['505', '507', '614', '751'] },
-          { id: '100', name: { en: 'Siu Hong', 'zh-HK': '兆康', 'zh-CN': '兆康' }, routes: ['505', '610', '614', '615', '751'] },
-          { id: '110', name: { en: 'San Hui', 'zh-HK': '新墟', 'zh-CN': '新墟' }, routes: ['614', '614P'] },
-          { id: '120', name: { en: 'Light Rail Depot', 'zh-HK': '輕鐵車廠', 'zh-CN': '轻铁车厂' }, routes: ['610', '615', '615P'] }
-        ]
-      },
-      {
-        id: 'yuen_long',
-        nameKey: 'yuenLongRegion',
-        stops: [
-          { id: '300', name: { en: 'Yuen Long Terminus', 'zh-HK': '元朗站', 'zh-CN': '元朗站' }, routes: ['610', '614', '615', '761P'] },
-          { id: '310', name: { en: 'Tai Tong Road', 'zh-HK': '大棠路', 'zh-CN': '大棠路' }, routes: ['610', '614', '615', '761P'] },
-          { id: '320', name: { en: 'Shui Pin Wai', 'zh-HK': '水邊圍', 'zh-CN': '水边围' }, routes: ['610', '614', '615', '761P'] },
-          { id: '330', name: { en: 'Ping Shan', 'zh-HK': '屏山', 'zh-CN': '屏山' }, routes: ['610', '614', '615', '761P'] },
-          { id: '340', name: { en: 'Hung Shui Kiu', 'zh-HK': '洪水橋', 'zh-CN': '洪水桥' }, routes: ['610', '614', '615', '751'] }
-        ]
-      },
-      {
-        id: 'tin_shui_wai',
-        nameKey: 'tinShuiWaiRegion',
-        stops: [
-          { id: '430', name: { en: 'Tin Shui Wai Station', 'zh-HK': '天水圍站', 'zh-CN': '天水围站' }, routes: ['705', '706', '751', '751P'] },
-          { id: '440', name: { en: 'Tin Wing', 'zh-HK': '天榮', 'zh-CN': '天荣' }, routes: ['705', '706', '751', '761P'] },
-          { id: '450', name: { en: 'Chestwood', 'zh-HK': '翠湖', 'zh-CN': '翠湖' }, routes: ['751', '751P'] },
-          { id: '460', name: { en: 'Tin Sau', 'zh-HK': '天秀', 'zh-CN': '天秀' }, routes: ['705', '706', '751'] },
-          { id: '470', name: { en: 'Tin Yuet', 'zh-HK': '天悅', 'zh-CN': '天悦' }, routes: ['705', '706', '751'] },
-          { id: '480', name: { en: 'Ginza', 'zh-HK': '銀座', 'zh-CN': '银座' }, routes: ['705', '706', '751'] }
-        ]
-      }
-    ];
-
-    /* =========================================================================
-       INITIALIZATION & UI EVENT HANDLERS
-       ========================================================================= */
-
-    window.onload = function() {
-      initUiControls();
-      startAutoRefreshTimer();
-      fetchAndRenderData();
-    };
-
-    function initUiControls() {
-      // Populate Heavy Rail Lines
-      const heavyLineSelect = document.getElementById('heavy-line-select');
-      heavyLineSelect.innerHTML = HEAVY_RAIL_LINES.map(line => 
-        `<option value="${line.code}">${line.name[currentLanguage]}</option>`
-      ).join('');
-
-      onHeavyLineChange();
-
-      // Populate LRT Regions
-      const lrtRegionSelect = document.getElementById('lrt-region-select');
-      lrtRegionSelect.innerHTML = LIGHT_RAIL_REGIONS.map(reg => 
-        `<option value="${reg.id}">${translations[currentLanguage][reg.nameKey]}</option>`
-      ).join('');
-
-      onLrtRegionChange();
-    }
-
-    function changeLanguage(newLang) {
-      currentLanguage = newLang;
-      document.documentElement.lang = newLang;
-
-      // Update text in static UI fields
-      document.getElementById('header-subtitle').innerText = translations[currentLanguage].headerSubtitle;
-      document.getElementById('smooth-sync-text').innerHTML = translations[currentLanguage].smoothSync;
-      document.getElementById('mtr-optimal-text').innerText = translations[currentLanguage].mtrOptimal;
-      document.getElementById('label-heavy-rail').innerText = translations[currentLanguage].heavyRail;
-      document.getElementById('label-light-rail').innerText = translations[currentLanguage].lightRail;
-      
-      document.getElementById('lbl-select-line').innerText = translations[currentLanguage].selectLine;
-      document.getElementById('lbl-select-station').innerText = translations[currentLanguage].selectStation;
-      document.getElementById('lbl-filter-dir').innerText = translations[currentLanguage].filterDir;
-
-      document.getElementById('lbl-select-region').innerText = translations[currentLanguage].selectRegion;
-      document.getElementById('lbl-select-lrt-stop').innerText = translations[currentLanguage].selectLrtStop;
-      document.getElementById('lbl-lrt-route-filter').innerText = translations[currentLanguage].lrtRouteFilter;
-
-      document.getElementById('lbl-last-updated').innerText = translations[currentLanguage].lastUpdated;
-      document.getElementById('lbl-status-normal').innerText = translations[currentLanguage].statusNormal;
-      document.getElementById('lbl-data-source').innerText = translations[currentLanguage].dataSource;
-
-      // Re-populate options in selects to reflect updated language names
-      initUiControls();
-      // Silently refresh current view cards without jump
-      renderDataSilently();
-    }
-
-    function switchNetwork(network) {
-      currentNetwork = network;
-      const tabHeavy = document.getElementById('tab-heavy');
-      const tabLrt = document.getElementById('tab-lrt');
-      const heavyControls = document.getElementById('heavy-controls');
-      const lrtControls = document.getElementById('lrt-controls');
-
-      if (network === 'heavy') {
-        tabHeavy.className = "flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center justify-center space-x-2 bg-rose-600 text-white shadow-md";
-        tabLrt.className = "flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center justify-center space-x-2 text-slate-400 hover:text-slate-200";
-        heavyControls.classList.remove('hidden');
-        lrtControls.classList.add('hidden');
-      } else {
-        tabLrt.className = "flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center justify-center space-x-2 bg-amber-600 text-white shadow-md";
-        tabHeavy.className = "flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center justify-center space-x-2 text-slate-400 hover:text-slate-200";
-        lrtControls.classList.remove('hidden');
-        heavyControls.classList.add('hidden');
-      }
-
-      fetchAndRenderData();
-    }
-
-    function onHeavyLineChange() {
-      const lineCode = document.getElementById('heavy-line-select').value;
-      const line = HEAVY_RAIL_LINES.find(l => l.code === lineCode);
-      const stationSelect = document.getElementById('heavy-station-select');
-
-      if (line) {
-        stationSelect.innerHTML = line.stations.map(st => 
-          `<option value="${st.code}">${st.name[currentLanguage]}</option>`
-        ).join('');
-      }
-
-      fetchAndRenderData();
-    }
-
-    function onHeavyStationChange() {
-      fetchAndRenderData();
-    }
-
-    function onLrtRegionChange() {
-      const regionId = document.getElementById('lrt-region-select').value;
-      const region = LIGHT_RAIL_REGIONS.find(r => r.id === regionId);
-      const stopSelect = document.getElementById('lrt-stop-select');
-
-      if (region) {
-        stopSelect.innerHTML = region.stops.map(st => 
-          `<option value="${st.id}">${st.name[currentLanguage]}</option>`
-        ).join('');
-      }
-
-      fetchAndRenderData();
-    }
-
-    function onLrtStopChange() {
-      fetchAndRenderData();
-    }
-
-    function onLrtSearchInput() {
-      selectedLrtRouteSearch = document.getElementById('lrt-route-search').value.trim();
-      renderDataSilently();
-    }
-
-    function setDirectionFilter(dir) {
-      directionFilter = dir;
-      ['ALL', 'UP', 'DOWN'].forEach(d => {
-        const btn = document.getElementById(`dir-${d.toLowerCase()}`);
-        if (d === dir) {
-          btn.className = "py-1.5 rounded font-medium text-center transition bg-slate-700 text-white shadow";
-        } else {
-          btn.className = "py-1.5 rounded font-medium text-center transition text-slate-400 hover:text-white";
-        }
-      });
-      renderDataSilently();
-    }
-
-    /* =========================================================================
-       AUTO-REFRESH TIMER ENGINE (30 SECONDS)
-       ========================================================================= */
-
-    function startAutoRefreshTimer() {
-      if (timerInterval) clearInterval(timerInterval);
-      timerCountdown = REFRESH_INTERVAL_SECONDS;
-      updateTimerRingVisuals();
-
-      timerInterval = setInterval(() => {
-        timerCountdown--;
-        if (timerCountdown <= 0) {
-          timerCountdown = REFRESH_INTERVAL_SECONDS;
-          // Trigger background update silently
-          fetchAndRenderData(true);
-        }
-        updateTimerRingVisuals();
-      }, 1000);
-    }
-
-    function updateTimerRingVisuals() {
-      document.getElementById('timer-count').innerText = timerCountdown;
-      const ring = document.getElementById('timer-ring');
-      const maxOffset = 37.7;
-      const progress = (REFRESH_INTERVAL_SECONDS - timerCountdown) / REFRESH_INTERVAL_SECONDS;
-      const strokeOffset = maxOffset - (progress * maxOffset);
-      ring.style.strokeDashoffset = strokeOffset;
-    }
-
-    function triggerManualRefresh() {
-      const icon = document.getElementById('refresh-btn-icon');
-      icon.classList.add('fa-spin');
-      timerCountdown = REFRESH_INTERVAL_SECONDS;
-      updateTimerRingVisuals();
-
-      fetchAndRenderData(true).finally(() => {
-        setTimeout(() => icon.classList.remove('fa-spin'), 600);
-      });
-    }
-
-    /* =========================================================================
-       SCROLL JUMP PREVENTION ENGINE & DATA RENDERER
-       ========================================================================= */
-
-    // In-memory cache for live train schedule entries
-    let cachedScheduleItems = [];
-
-    async function fetchAndRenderData(isBackground = false) {
-      const syncIcon = document.getElementById('sync-icon');
-      syncIcon.classList.add('fa-spin');
-
-      try {
-        if (currentNetwork === 'heavy') {
-          cachedScheduleItems = generateHeavyRailScheduleData();
-        } else {
-          cachedScheduleItems = generateLrtScheduleData();
-        }
-      } catch (err) {
-        console.error("Schedule retrieval issue:", err);
-      } finally {
-        setTimeout(() => syncIcon.classList.remove('fa-spin'), 500);
-      }
-
-      // Record update timestamp
-      const now = new Date();
-      document.getElementById('last-updated-time').innerText = now.toTimeString().split(' ')[0];
-
-      // Perform non-disruptive scroll-locked DOM injection
-      renderDataSilently();
-    }
-
-    /**
-     * CRITICAL FIX FOR SCROLL JUMP:
-     * Reads and saves both window scroll and element container scrollTop.
-     * Updates DOM in-place without clearing or jumping the viewport.
-     */
-    function renderDataSilently() {
-      const container = document.getElementById('arrival-scroll-container');
-      const cardsWrapper = document.getElementById('arrival-cards-wrapper');
-
-      // Preserve exact scroll positions prior to DOM alteration
-      const savedContainerScrollTop = container.scrollTop;
-      const savedWindowScrollY = window.scrollY;
-
-      // Filter cached items based on user criteria
-      let filteredItems = [...cachedScheduleItems];
-      if (currentNetwork === 'heavy') {
-        if (directionFilter === 'UP') {
-          filteredItems = filteredItems.filter(item => item.dir === 'UP');
-        } else if (directionFilter === 'DOWN') {
-          filteredItems = filteredItems.filter(item => item.dir === 'DOWN');
-        }
-      } else {
-        if (selectedLrtRouteSearch) {
-          filteredItems = filteredItems.filter(item => item.route.toLowerCase().includes(selectedLrtRouteSearch.toLowerCase()));
-        }
-      }
-
-      // Check if empty
-      if (filteredItems.length === 0) {
-        cardsWrapper.innerHTML = `
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-400">
-            <i class="fa-solid fa-circle-info text-2xl mb-2 text-slate-500"></i>
-            <p class="text-sm font-medium">${translations[currentLanguage].noData}</p>
-          </div>
-        `;
-      } else {
-        // Construct standard modern train cards HTML
-        const htmlContent = filteredItems.map(item => createArrivalCardHtml(item)).join('');
-        cardsWrapper.innerHTML = htmlContent;
-      }
-
-      // Instantly restore scroll positions back to user's exact coordinate
-      requestAnimationFrame(() => {
-        container.scrollTop = savedContainerScrollTop;
-        window.scrollTo(0, savedWindowScrollY);
-      });
-    }
-
-    function createArrivalCardHtml(item) {
-      const lang = currentLanguage;
-      const minutesText = item.minutes === 0 ? 
-        `<span class="text-rose-400 font-bold animate-pulse">${translations[lang].arrivingNow}</span>` :
-        `<span class="text-3xl font-extrabold font-mono text-white">${item.minutes}</span> <span class="text-xs text-slate-400">${translations[lang].minLeft}</span>`;
-
-      const badgeColor = item.lineColor || '#E97200';
-
-      return `
-        <div class="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-4 shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          
-          <!-- Train/Route Identification -->
-          <div class="flex items-center space-x-3.5">
-            <div class="w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold text-white shadow-inner flex-none" style="background-color: ${badgeColor};">
-              <span class="text-xs tracking-tight uppercase">${item.badgeLabel}</span>
-              <span class="text-sm leading-none font-extrabold">${item.routeCode}</span>
+<body class="min-h-screen flex flex-col items-center py-6 px-3 sm:px-6 lg:px-8 bg-slate-950 text-slate-100">
+
+    <div class="w-full max-w-6xl space-y-6">
+        
+        <!-- Header -->
+        <header class="flex flex-col sm:flex-row items-center justify-between gap-4 glass-panel p-5 rounded-2xl shadow-2xl">
+            <div class="flex items-center gap-3.5 text-center sm:text-left">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
+                    <i class="ph-bold ph-train text-2xl text-white"></i>
+                </div>
+                <div>
+                    <h1 id="uiAppTitle" class="text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
+                        TransitPulse HK MTR
+                    </h1>
+                    <p id="uiSubtitle" class="text-xs sm:text-sm text-slate-400 font-medium">Real-time ETAs & algorithmic load prediction for Heavy & Light Rail</p>
+                </div>
             </div>
+
+            <!-- Language Switcher -->
+            <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 shadow-inner">
+                <button onclick="setLanguage('en')" id="langBtn-en" class="lang-btn text-xs px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">EN</button>
+                <button onclick="setLanguage('tc')" id="langBtn-tc" class="lang-btn text-xs px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">繁中</button>
+                <button onclick="setLanguage('sc')" id="langBtn-sc" class="lang-btn text-xs px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">简中</button>
+            </div>
+        </header>
+
+        <!-- Controls Section -->
+        <section class="glass-panel rounded-2xl p-5 shadow-xl space-y-5">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                
+                <div>
+                    <label id="lblLineSelect" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Browse by Line</label>
+                    <select id="lineSelect" class="w-full bg-slate-900 border border-slate-700/80 text-slate-100 rounded-xl py-2.5 px-3.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-sm font-medium">
+                        <!-- Populated dynamically by JS -->
+                    </select>
+                </div>
+
+                <div>
+                    <label id="lblStationSelect" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Station (Interchanges Auto-Link)</label>
+                    <select id="stationSelect" class="w-full bg-slate-900 border border-slate-700/80 text-slate-100 rounded-xl py-2.5 px-3.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-sm font-medium">
+                        <!-- Populated dynamically by JS -->
+                    </select>
+                </div>
+
+                <div>
+                    <button id="gpsBtn" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold py-2.5 px-4 rounded-xl transition shadow-lg shadow-emerald-600/20 active:scale-[0.98] flex items-center justify-center gap-2 text-sm">
+                        <i class="ph-bold ph-crosshair text-base"></i>
+                        <span id="uiGpsBtnText">Nearest Station</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Interchanges Connected Badges -->
+            <div id="interchangeBadges" class="hidden flex-wrap items-center gap-2 pt-2 border-t border-slate-800">
+                <span id="uiInterchangeLabel" class="text-xs font-semibold text-slate-400 mr-1">Connected Lines:</span>
+                <div id="interchangePills" class="flex flex-wrap gap-2"></div>
+            </div>
+
+            <!-- Status Indicator Bar -->
+            <div class="flex items-center justify-between px-4 py-2.5 rounded-xl bg-slate-900/70 border border-slate-800">
+                <div id="statusBox" class="text-xs sm:text-sm flex items-center gap-2.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-yellow-500 animate-pulse shrink-0" id="statusDot"></div>
+                    <span id="statusText" class="text-slate-300 font-medium">Connecting...</span>
+                </div>
+                
+                <button id="manualSyncBtn" onclick="fetchRealTimeData()" class="text-xs font-mono text-emerald-400 flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg border border-emerald-500/20 transition cursor-pointer">
+                    <i class="ph-bold ph-arrows-clockwise text-emerald-400" id="syncIcon"></i>
+                    <span id="countdownText">15s</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Dynamic Results Section -->
+        <section id="resultsContainer" class="space-y-8 min-h-[300px]">
+            <!-- Dynamically populated by JS -->
+        </section>
+        
+        <!-- Footer -->
+        <footer class="text-center text-slate-500 text-xs py-6 space-y-1 border-t border-slate-800/60">
+            <p id="uiFooterText">Data fetched directly from data.gov.hk client-side API. Passenger load factor is an algorithmic simulation estimate based on train interval and length.</p>
+            <p class="text-slate-600 font-mono text-[11px]">TransitPulse HK MTR &bull; 2026</p>
+        </footer>
+    </div>
+
+    <script>
+        // Language state
+        let currentLang = 'tc'; // Default to Traditional Chinese for HK context
+
+        // Translation dictionary
+        const TRANSLATIONS = {
+            en: {
+                appTitle: "TransitPulse HK MTR",
+                subtitle: "Real-time ETAs & load prediction for Heavy & Light Rail",
+                browseByLine: "Browse by Line",
+                selectStation: "Station (Interchanges Auto-Link)",
+                nearestStation: "Nearest Station",
+                connectedLines: "Interchange Lines:",
+                locatingGps: "Locating via GPS...",
+                gpsDenied: "Geolocation access denied.",
+                gpsFailed: "GPS location failed. Using default station.",
+                nearestFound: "Nearest: {name} ({dist}km)",
+                syncing: "Syncing real-time platform data...",
+                liveSyncAt: "Live Data Synchronized at {time}",
+                apiError: "Service error or end of daily operation",
+                noTrains: "No scheduled trains at this time.",
+                arriving: "Arriving",
+                departing: "Departing",
+                min: "min",
+                platform: "Platform",
+                car: "Car",
+                cars: "Cars",
+                to: "To",
+                loadComfortable: "Comfortable",
+                loadStanding: "Standing Room",
+                loadCrowded: "Crowded",
+                dirUp: "Upbound (Direction 1)",
+                dirDown: "Downbound (Direction 2)",
+                footerText: "Data fetched directly from data.gov.hk client-side API. Passenger load factor is an algorithmic simulation estimate based on train interval and vehicle capacity.",
+                syncNow: "Syncing..."
+            },
+            tc: {
+                appTitle: "TransitPulse 香港地鐵",
+                subtitle: "港鐵及輕鐵即時到站時間與載客量預測",
+                browseByLine: "按路線選擇",
+                selectStation: "車站（自動連結轉乘站）",
+                nearestStation: "最近車站",
+                connectedLines: "可轉乘路線：",
+                locatingGps: "正在進行 GPS 定位...",
+                gpsDenied: "已拒絕地理位置存取權限。",
+                gpsFailed: "GPS 定位失敗，使用預設車站。",
+                nearestFound: "最近車站：{name}（{dist}公里）",
+                syncing: "正在從 data.gov.hk 同步月台數據...",
+                liveSyncAt: "數據已於 {time} 更新",
+                apiError: "API 服務異常或非服務時間",
+                noTrains: "現時沒有預定列車到站。",
+                arriving: "即將抵達",
+                departing: "正在離開",
+                min: "分鐘",
+                platform: "月台",
+                car: "卡車廂",
+                cars: "卡車廂",
+                to: "往",
+                loadComfortable: "快適寬敞",
+                loadStanding: "適中企位",
+                loadCrowded: "較為擁擠",
+                dirUp: "上行 (方向 1)",
+                dirDown: "下行 (方向 2)",
+                footerText: "資料直接從 data.gov.hk 前端 API 擷取。載客量預測為基於班次間隔與車廂數量的演算法模擬估算。",
+                syncNow: "同步中..."
+            },
+            sc: {
+                appTitle: "TransitPulse 香港地铁",
+                subtitle: "港铁及轻铁实时到站时间与载客量预测",
+                browseByLine: "按路线选择",
+                selectStation: "车站（自动链接换乘站）",
+                nearestStation: "最近车站",
+                connectedLines: "可换乘路线：",
+                locatingGps: "正在进行 GPS 定位...",
+                gpsDenied: "已拒绝地理位置获取权限。",
+                gpsFailed: "GPS 定位失败，使用默认车站。",
+                nearestFound: "最近车站：{name}（{dist}公里）",
+                syncing: "正在从 data.gov.hk 同步站台数据...",
+                liveSyncAt: "数据已于 {time} 更新",
+                apiError: "API 服务异常或非服务时间",
+                noTrains: "现时没有预定列车到站。",
+                arriving: "即将到达",
+                departing: "正在离开",
+                min: "分钟",
+                platform: "站台",
+                car: "节车厢",
+                cars: "节车厢",
+                to: "往",
+                loadComfortable: "舒适宽松",
+                loadStanding: "适中企位",
+                loadCrowded: "较为拥挤",
+                dirUp: "上行 (方向 1)",
+                dirDown: "下行 (方向 2)",
+                footerText: "数据直接从 data.gov.hk 前端 API 获取。载客量预测为基于班次间隔与车厢数量的算法模拟估算。",
+                syncNow: "同步中..."
+            }
+        };
+
+        const LINE_META = {
+            'AEL': { 
+                code: 'AEL',
+                name: { en: 'Airport Express', tc: '機場快綫', sc: '机场快线' }, 
+                color: 'bg-teal-500', border: 'border-t-teal-500', text: 'text-teal-400', badge: 'bg-teal-500/20 text-teal-300 border-teal-500/30'
+            },
+            'TCL': { 
+                code: 'TCL',
+                name: { en: 'Tung Chung Line', tc: '東涌綫', sc: '东涌线' }, 
+                color: 'bg-orange-500', border: 'border-t-orange-500', text: 'text-orange-400', badge: 'bg-orange-500/20 text-orange-300 border-orange-500/30'
+            },
+            'TML': { 
+                code: 'TML',
+                name: { en: 'Tuen Ma Line', tc: '屯馬綫', sc: '屯马线' }, 
+                color: 'bg-amber-700', border: 'border-t-amber-700', text: 'text-amber-500', badge: 'bg-amber-700/20 text-amber-300 border-amber-700/30'
+            },
+            'TKL': { 
+                code: 'TKL',
+                name: { en: 'Tseung Kwan O Line', tc: '將軍澳綫', sc: '将军澳线' }, 
+                color: 'bg-purple-600', border: 'border-t-purple-600', text: 'text-purple-400', badge: 'bg-purple-600/20 text-purple-300 border-purple-600/30'
+            },
+            'EAL': { 
+                code: 'EAL',
+                name: { en: 'East Rail Line', tc: '東鐵綫', sc: '东铁线' }, 
+                color: 'bg-sky-500', border: 'border-t-sky-500', text: 'text-sky-400', badge: 'bg-sky-500/20 text-sky-300 border-sky-500/30'
+            },
+            'SIL': { 
+                code: 'SIL',
+                name: { en: 'South Island Line', tc: '南港島綫', sc: '南港岛线' }, 
+                color: 'bg-lime-500', border: 'border-t-lime-500', text: 'text-lime-400', badge: 'bg-lime-500/20 text-lime-300 border-lime-500/30'
+            },
+            'TWL': { 
+                code: 'TWL',
+                name: { en: 'Tsuen Wan Line', tc: '荃灣綫', sc: '荃湾线' }, 
+                color: 'bg-red-600', border: 'border-t-red-600', text: 'text-red-400', badge: 'bg-red-600/20 text-red-300 border-red-600/30'
+            },
+            'ISL': { 
+                code: 'ISL',
+                name: { en: 'Island Line', tc: '港島綫', sc: '港岛线' }, 
+                color: 'bg-blue-600', border: 'border-t-blue-600', text: 'text-blue-400', badge: 'bg-blue-600/20 text-blue-300 border-blue-600/30'
+            },
+            'KTL': { 
+                code: 'KTL',
+                name: { en: 'Kwun Tong Line', tc: '觀塘綫', sc: '观塘线' }, 
+                color: 'bg-emerald-600', border: 'border-t-emerald-600', text: 'text-emerald-400', badge: 'bg-emerald-600/20 text-emerald-300 border-emerald-600/30'
+            },
+            'LRT_TM': { 
+                code: 'LRT_TM',
+                name: { en: 'Light Rail (Tuen Mun)', tc: '輕鐵 (屯門)', sc: '轻铁 (屯门)' }, 
+                color: 'bg-yellow-500', border: 'border-t-yellow-500', text: 'text-yellow-400', badge: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
+            },
+            'LRT_YL': { 
+                code: 'LRT_YL',
+                name: { en: 'Light Rail (Yuen Long)', tc: '輕鐵 (元朗)', sc: '轻铁 (元朗)' }, 
+                color: 'bg-amber-400', border: 'border-t-amber-400', text: 'text-amber-300', badge: 'bg-amber-400/20 text-amber-200 border-amber-400/30'
+            },
+            'LRT_TSW': { 
+                code: 'LRT_TSW',
+                name: { en: 'Light Rail (Tin Shui Wai)', tc: '輕鐵 (天水圍)', sc: '轻铁 (天水围)' }, 
+                color: 'bg-orange-400', border: 'border-t-orange-400', text: 'text-orange-300', badge: 'bg-orange-400/20 text-orange-200 border-orange-400/30'
+            }
+        };
+
+        const STATIONS = [
+            // Airport Express (AEL)
+            { key: 'HOK', line: 'AEL', code: 'HOK', name: { en: 'Hong Kong', tc: '香港', sc: '香港' }, lat: 22.2846, lng: 114.1581, isTerminal: true },
+            { key: 'KOW', line: 'AEL', code: 'KOW', name: { en: 'Kowloon', tc: '九龍', sc: '九龙' }, lat: 22.3043, lng: 114.1615, isTerminal: false },
+            { key: 'TSY', line: 'AEL', code: 'TSY', name: { en: 'Tsing Yi', tc: '青衣', sc: '青衣' }, lat: 22.3584, lng: 114.1069, isTerminal: false },
+            { key: 'AIR', line: 'AEL', code: 'AIR', name: { en: 'Airport', tc: '機場', sc: '机场' }, lat: 22.3153, lng: 113.9350, isTerminal: false },
+            { key: 'AWE', line: 'AEL', code: 'AWE', name: { en: 'AsiaWorld-Expo', tc: '博覽館', sc: '博览馆' }, lat: 22.3211, lng: 113.9431, isTerminal: true },
+
+            // Tung Chung Line (TCL)
+            { key: 'HOK', line: 'TCL', code: 'HOK', name: { en: 'Hong Kong', tc: '香港', sc: '香港' }, lat: 22.2846, lng: 114.1581, isTerminal: true },
+            { key: 'KOW', line: 'TCL', code: 'KOW', name: { en: 'Kowloon', tc: '九龍', sc: '九龙' }, lat: 22.3043, lng: 114.1615, isTerminal: false },
+            { key: 'OLY', line: 'TCL', code: 'OLY', name: { en: 'Olympic', tc: '奧運', sc: '奥运' }, lat: 22.3177, lng: 114.1602, isTerminal: false },
+            { key: 'NAC', line: 'TCL', code: 'NAC', name: { en: 'Nam Cheong', tc: '南昌', sc: '南昌' }, lat: 22.3253, lng: 114.1539, isTerminal: false },
+            { key: 'LAK', line: 'TCL', code: 'LAK', name: { en: 'Lai King', tc: '荔景', sc: '荔景' }, lat: 22.3483, lng: 114.1271, isTerminal: false },
+            { key: 'TSY', line: 'TCL', code: 'TSY', name: { en: 'Tsing Yi', tc: '青衣', sc: '青衣' }, lat: 22.3584, lng: 114.1069, isTerminal: false },
+            { key: 'SUN', line: 'TCL', code: 'SUN', name: { en: 'Sunny Bay', tc: '欣澳', sc: '欣澳' }, lat: 22.3314, lng: 114.0298, isTerminal: false },
+            { key: 'TUC', line: 'TCL', code: 'TUC', name: { en: 'Tung Chung', tc: '東涌', sc: '东涌' }, lat: 22.2894, lng: 113.9405, isTerminal: true },
+
+            // Tsuen Wan Line (TWL)
+            { key: 'CEN', line: 'TWL', code: 'CEN', name: { en: 'Central', tc: '中環', sc: '中环' }, lat: 22.2819, lng: 114.1577, isTerminal: true },
+            { key: 'ADM', line: 'TWL', code: 'ADM', name: { en: 'Admiralty', tc: '金鐘', sc: '金钟' }, lat: 22.2795, lng: 114.1646, isTerminal: false },
+            { key: 'TST', line: 'TWL', code: 'TST', name: { en: 'Tsim Sha Tsui', tc: '尖沙咀', sc: '尖沙咀' }, lat: 22.2976, lng: 114.1722, isTerminal: false },
+            { key: 'JOR', line: 'TWL', code: 'JOR', name: { en: 'Jordan', tc: '佐敦', sc: '佐敦' }, lat: 22.3049, lng: 114.1717, isTerminal: false },
+            { key: 'YMT', line: 'TWL', code: 'YMT', name: { en: 'Yau Ma Tei', tc: '油麻地', sc: '油麻地' }, lat: 22.3134, lng: 114.1706, isTerminal: false },
+            { key: 'MOK', line: 'TWL', code: 'MOK', name: { en: 'Mong Kok', tc: '旺角', sc: '旺角' }, lat: 22.3201, lng: 114.1697, isTerminal: false },
+            { key: 'PRE', line: 'TWL', code: 'PRE', name: { en: 'Prince Edward', tc: '太子', sc: '太子' }, lat: 22.3245, lng: 114.1681, isTerminal: false },
+            { key: 'SSP', line: 'TWL', code: 'SSP', name: { en: 'Sham Shui Po', tc: '深水埗', sc: '深水埗' }, lat: 22.3308, lng: 114.1623, isTerminal: false },
+            { key: 'CSW', line: 'TWL', code: 'CSW', name: { en: 'Cheung Sha Wan', tc: '長沙灣', sc: '长沙湾' }, lat: 22.3371, lng: 114.1558, isTerminal: false },
+            { key: 'LCK', line: 'TWL', code: 'LCK', name: { en: 'Lai Chi Kok', tc: '荔枝角', sc: '荔枝角' }, lat: 22.3374, lng: 114.1485, isTerminal: false },
+            { key: 'MEF', line: 'TWL', code: 'MEF', name: { en: 'Mei Foo', tc: '美孚', sc: '美孚' }, lat: 22.3374, lng: 114.1396, isTerminal: false },
+            { key: 'LAK', line: 'TWL', code: 'LAK', name: { en: 'Lai King', tc: '荔景', sc: '荔景' }, lat: 22.3483, lng: 114.1271, isTerminal: false },
+            { key: 'KWF', line: 'TWL', code: 'KWF', name: { en: 'Kwai Fong', tc: '葵芳', sc: '葵芳' }, lat: 22.3565, lng: 114.1278, isTerminal: false },
+            { key: 'KWH', line: 'TWL', code: 'KWH', name: { en: 'Kwai Hing', tc: '葵興', sc: '葵兴' }, lat: 22.3629, lng: 114.1315, isTerminal: false },
+            { key: 'TWH', line: 'TWL', code: 'TWH', name: { en: 'Tai Wo Hau', tc: '大窩口', sc: '大窝口' }, lat: 22.3706, lng: 114.1230, isTerminal: false },
+            { key: 'TSW', line: 'TWL', code: 'TSW', name: { en: 'Tsuen Wan', tc: '荃灣', sc: '荃湾' }, lat: 22.3739, lng: 114.1186, isTerminal: true },
+
+            // Kwun Tong Line (KTL)
+            { key: 'WHA', line: 'KTL', code: 'WHA', name: { en: 'Whampoa', tc: '黃埔', sc: '黄埔' }, lat: 22.3033, lng: 114.1897, isTerminal: true },
+            { key: 'HOM', line: 'KTL', code: 'HOM', name: { en: 'Ho Man Tin', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
+            { key: 'YMT', line: 'KTL', code: 'YMT', name: { en: 'Yau Ma Tei', tc: '油麻地', sc: '油麻地' }, lat: 22.3134, lng: 114.1706, isTerminal: false },
+            { key: 'MOK', line: 'KTL', code: 'MOK', name: { en: 'Mong Kok', tc: '旺角', sc: '旺角' }, lat: 22.3201, lng: 114.1697, isTerminal: false },
+            { key: 'PRE', line: 'KTL', code: 'PRE', name: { en: 'Prince Edward', tc: '太子', sc: '太子' }, lat: 22.3245, lng: 114.1681, isTerminal: false },
+            { key: 'SKM', line: 'KTL', code: 'SKM', name: { en: 'Shek Kip Mei', tc: '石硤尾', sc: '石硖尾' }, lat: 22.3323, lng: 114.1686, isTerminal: false },
+            { key: 'KOT', line: 'KTL', code: 'KOT', name: { en: 'Kowloon Tong', tc: '九龍塘', sc: '九龙塘' }, lat: 22.3371, lng: 114.1758, isTerminal: false },
+            { key: 'LOF', line: 'KTL', code: 'LOF', name: { en: 'Lok Fu', tc: '樂富', sc: '乐富' }, lat: 22.3377, lng: 114.1873, isTerminal: false },
+            { key: 'WTS', line: 'KTL', code: 'WTS', name: { en: 'Wong Tai Sin', tc: '黃大仙', sc: '黄大仙' }, lat: 22.3413, lng: 114.1932, isTerminal: false },
+            { key: 'DIH', line: 'KTL', code: 'DIH', name: { en: 'Diamond Hill', tc: '鑽石山', sc: '钻石山' }, lat: 22.3402, lng: 114.2017, isTerminal: false },
+            { key: 'CHH', line: 'KTL', code: 'CHH', name: { en: 'Choi Hung', tc: '彩虹', sc: '彩虹' }, lat: 22.3343, lng: 114.2046, isTerminal: false },
+            { key: 'KOB', line: 'KTL', code: 'KOB', name: { en: 'Kowloon Bay', tc: '九龍灣', sc: '九龙湾' }, lat: 22.3236, lng: 114.2141, isTerminal: false },
+            { key: 'NTK', line: 'KTL', code: 'NTK', name: { en: 'Ngau Tau Kok', tc: '牛頭角', sc: '牛头角' }, lat: 22.3155, lng: 114.2192, isTerminal: false },
+            { key: 'KWT', line: 'KTL', code: 'KWT', name: { en: 'Kwun Tong', tc: '觀塘', sc: '观塘' }, lat: 22.3121, lng: 114.2263, isTerminal: false },
+            { key: 'LAT', line: 'KTL', code: 'LAT', name: { en: 'Lam Tin', tc: '藍田', sc: '蓝田' }, lat: 22.3072, lng: 114.2372, isTerminal: false },
+            { key: 'YAT', line: 'KTL', code: 'YAT', name: { en: 'Yau Tong', tc: '油塘', sc: '油塘' }, lat: 22.2974, lng: 114.2382, isTerminal: false },
+            { key: 'TIK', line: 'KTL', code: 'TIK', name: { en: 'Tiu Keng Leng', tc: '調景嶺', sc: '调景岭' }, lat: 22.3047, lng: 114.2526, isTerminal: true },
+
+            // Island Line (ISL)
+            { key: 'KET', line: 'ISL', code: 'KET', name: { en: 'Kennedy Town', tc: '堅尼地城', sc: '坚尼地城' }, lat: 22.2811, lng: 114.1276, isTerminal: true },
+            { key: 'HKU', line: 'ISL', code: 'HKU', name: { en: 'HKU', tc: '香港大學', sc: '香港大学' }, lat: 22.2844, lng: 114.1352, isTerminal: false },
+            { key: 'SYP', line: 'ISL', code: 'SYP', name: { en: 'Sai Ying Pun', tc: '西營盤', sc: '西营盘' }, lat: 22.2870, lng: 114.1420, isTerminal: false },
+            { key: 'SHW', line: 'ISL', code: 'SHW', name: { en: 'Sheung Wan', tc: '上環', sc: '上环' }, lat: 22.2870, lng: 114.1523, isTerminal: false },
+            { key: 'CEN', line: 'ISL', code: 'CEN', name: { en: 'Central', tc: '中環', sc: '中环' }, lat: 22.2819, lng: 114.1577, isTerminal: false },
+            { key: 'ADM', line: 'ISL', code: 'ADM', name: { en: 'Admiralty', tc: '金鐘', sc: '金钟' }, lat: 22.2795, lng: 114.1646, isTerminal: false },
+            { key: 'WAC', line: 'ISL', code: 'WAC', name: { en: 'Wan Chai', tc: '灣仔', sc: '湾仔' }, lat: 22.2777, lng: 114.1729, isTerminal: false },
+            { key: 'CAB', line: 'ISL', code: 'CAB', name: { en: 'Causeway Bay', tc: '銅鑼灣', sc: '铜锣湾' }, lat: 22.2804, lng: 114.1848, isTerminal: false },
+            { key: 'TIN', line: 'ISL', code: 'TIN', name: { en: 'Tin Hau', tc: '天后', sc: '天后' }, lat: 22.2828, lng: 114.1916, isTerminal: false },
+            { key: 'FOT_I', line: 'ISL', code: 'FOT', name: { en: 'Fortress Hill', tc: '炮台山', sc: '炮台山' }, lat: 22.2882, lng: 114.1939, isTerminal: false },
+            { key: 'NOP', line: 'ISL', code: 'NOP', name: { en: 'North Point', tc: '北角', sc: '北角' }, lat: 22.2917, lng: 114.2007, isTerminal: false },
+            { key: 'QUO', line: 'ISL', code: 'QUO', name: { en: 'Quarry Bay', tc: '鰂魚涌', sc: '鰂鱼涌' }, lat: 22.2876, lng: 114.2114, isTerminal: false },
+            { key: 'TAK', line: 'ISL', code: 'TAK', name: { en: 'Tai Koo', tc: '太古', sc: '太古' }, lat: 22.2851, lng: 114.2173, isTerminal: false },
+            { key: 'SKW', line: 'ISL', code: 'SKW', name: { en: 'Sai Wan Ho', tc: '西灣河', sc: '西湾河' }, lat: 22.2823, lng: 114.2215, isTerminal: false },
+            { key: 'SWH', line: 'ISL', code: 'SWH', name: { en: 'Shau Kei Wan', tc: '筲箕灣', sc: '筲箕湾' }, lat: 22.2794, lng: 114.2295, isTerminal: false },
+            { key: 'HFC', line: 'ISL', code: 'HFC', name: { en: 'Heng Fa Chuen', tc: '杏花邨', sc: '杏花邨' }, lat: 22.2773, lng: 114.2400, isTerminal: false },
+            { key: 'CHW', line: 'ISL', code: 'CHW', name: { en: 'Chai Wan', tc: '柴灣', sc: '柴湾' }, lat: 22.2647, lng: 114.2374, isTerminal: true },
+
+            // Tseung Kwan O Line (TKL)
+            { key: 'NOP', line: 'TKL', code: 'NOP', name: { en: 'North Point', tc: '北角', sc: '北角' }, lat: 22.2917, lng: 114.2007, isTerminal: true },
+            { key: 'QUO', line: 'TKL', code: 'QUO', name: { en: 'Quarry Bay', tc: '鰂魚涌', sc: '鰂鱼涌' }, lat: 22.2876, lng: 114.2114, isTerminal: false },
+            { key: 'YAT', line: 'TKL', code: 'YAT', name: { en: 'Yau Tong', tc: '油塘', sc: '油塘' }, lat: 22.2974, lng: 114.2382, isTerminal: false },
+            { key: 'TIK', line: 'TKL', code: 'TIK', name: { en: 'Tiu Keng Leng', tc: '調景嶺', sc: '调景岭' }, lat: 22.3047, lng: 114.2526, isTerminal: false },
+            { key: 'TKO', line: 'TKL', code: 'TKO', name: { en: 'Tseung Kwan O', tc: '將軍澳', sc: '将军澳' }, lat: 22.3073, lng: 114.2604, isTerminal: false },
+            { key: 'LHP', line: 'TKL', code: 'LHP', name: { en: 'LOHAS Park', tc: '康城', sc: '康城' }, lat: 22.2952, lng: 114.2690, isTerminal: true },
+            { key: 'HAO', line: 'TKL', code: 'HAO', name: { en: 'Hang Hau', tc: '坑口', sc: '坑口' }, lat: 22.3157, lng: 114.2651, isTerminal: false },
+            { key: 'POA', line: 'TKL', code: 'POA', name: { en: 'Po Lam', tc: '寶琳', sc: '宝琳' }, lat: 22.3230, lng: 114.2595, isTerminal: true },
+
+            // East Rail Line (EAL)
+            { key: 'ADM', line: 'EAL', code: 'ADM', name: { en: 'Admiralty', tc: '金鐘', sc: '金钟' }, lat: 22.2795, lng: 114.1646, isTerminal: true },
+            { key: 'EXC', line: 'EAL', code: 'EXC', name: { en: 'Exhibition Centre', tc: '會展', sc: '会展' }, lat: 22.2818, lng: 114.1758, isTerminal: false },
+            { key: 'HUH', line: 'EAL', code: 'HUH', name: { en: 'Hung Hom', tc: '紅磡', sc: '红磡' }, lat: 22.3031, lng: 114.1818, isTerminal: false },
+            { key: 'MKK', line: 'EAL', code: 'MKK', name: { en: 'Mong Kok East', tc: '旺角東', sc: '旺角东' }, lat: 22.3217, lng: 114.1729, isTerminal: false },
+            { key: 'KOT', line: 'EAL', code: 'KOT', name: { en: 'Kowloon Tong', tc: '九龍塘', sc: '九龙塘' }, lat: 22.3371, lng: 114.1758, isTerminal: false },
+            { key: 'TAW', line: 'EAL', code: 'TAW', name: { en: 'Tai Wai', tc: '大圍', sc: '大围' }, lat: 22.3732, lng: 114.1783, isTerminal: false },
+            { key: 'SHT', line: 'EAL', code: 'SHT', name: { en: 'Sha Tin', tc: '沙田', sc: '沙田' }, lat: 22.3826, lng: 114.1878, isTerminal: false },
+            { key: 'FOT_E', line: 'EAL', code: 'FOT', name: { en: 'Fo Tan', tc: '火炭', sc: '火炭' }, lat: 22.3965, lng: 114.1969, isTerminal: false },
+            { key: 'RAC', line: 'EAL', code: 'RAC', name: { en: 'Racecourse', tc: '馬場', sc: '马场' }, lat: 22.3999, lng: 114.2039, isTerminal: false },
+            { key: 'UNI', line: 'EAL', code: 'UNI', name: { en: 'University', tc: '大學', sc: '大学' }, lat: 22.4132, lng: 114.2107, isTerminal: false },
+            { key: 'TAP', line: 'EAL', code: 'TAP', name: { en: 'Tai Po Market', tc: '大埔墟', sc: '大埔墟' }, lat: 22.4447, lng: 114.1678, isTerminal: false },
+            { key: 'TWO', line: 'EAL', code: 'TWO', name: { en: 'Tai Wo', tc: '太和', sc: '太和' }, lat: 22.4513, lng: 114.1611, isTerminal: false },
+            { key: 'FAN', line: 'EAL', code: 'FAN', name: { en: 'Fanling', tc: '粉嶺', sc: '粉岭' }, lat: 22.4920, lng: 114.1384, isTerminal: false },
+            { key: 'SHS', line: 'EAL', code: 'SHS', name: { en: 'Sheung Shui', tc: '上水', sc: '上水' }, lat: 22.5015, lng: 114.1281, isTerminal: false },
+            { key: 'LOW', line: 'EAL', code: 'LOW', name: { en: 'Lo Wu', tc: '羅湖', sc: '罗湖' }, lat: 22.5290, lng: 114.1132, isTerminal: true },
+            { key: 'LMC', line: 'EAL', code: 'LMC', name: { en: 'Lok Ma Chau', tc: '落馬洲', sc: '落马洲' }, lat: 22.5165, lng: 114.0645, isTerminal: true },
+
+            // South Island Line (SIL)
+            { key: 'ADM', line: 'SIL', code: 'ADM', name: { en: 'Admiralty', tc: '金鐘', sc: '金钟' }, lat: 22.2795, lng: 114.1646, isTerminal: true },
+            { key: 'OCP', line: 'SIL', code: 'OCP', name: { en: 'Ocean Park', tc: '海洋公園', sc: '海洋公园' }, lat: 22.2476, lng: 114.1751, isTerminal: false },
+            { key: 'WCH', line: 'SIL', code: 'WCH', name: { en: 'Wong Chuk Hang', tc: '黃竹坑', sc: '黄竹坑' }, lat: 22.2478, lng: 114.1687, isTerminal: false },
+            { key: 'LET', line: 'SIL', code: 'LET', name: { en: 'Lei Tung', tc: '利東', sc: '利东' }, lat: 22.2415, lng: 114.1561, isTerminal: false },
+            { key: 'SOH', line: 'SIL', code: 'SOH', name: { en: 'South Horizons', tc: '海怡半島', sc: '海怡半岛' }, lat: 22.2443, lng: 114.1481, isTerminal: true },
+
+            // Tuen Ma Line (TML)
+            { key: 'WKS', line: 'TML', code: 'WKS', name: { en: 'Wu Kai Sha', tc: '烏溪沙', sc: '乌溪沙' }, lat: 22.4285, lng: 114.2443, isTerminal: true },
+            { key: 'MOS', line: 'TML', code: 'MOS', name: { en: 'Ma On Shan', tc: '馬鞍山', sc: '马鞍山' }, lat: 22.4253, lng: 114.2319, isTerminal: false },
+            { key: 'HEO', line: 'TML', code: 'HEO', name: { en: 'Heng On', tc: '恒安', sc: '恒安' }, lat: 22.4173, lng: 114.2255, isTerminal: false },
+            { key: 'TSH', line: 'TML', code: 'TSH', name: { en: 'Tai Shui Hang', tc: '大水坑', sc: '大水坑' }, lat: 22.4087, lng: 114.2215, isTerminal: false },
+            { key: 'CIO', line: 'TML', code: 'CIO', name: { en: 'City One', tc: '第一城', sc: '第一城' }, lat: 22.3875, lng: 114.2036, isTerminal: false },
+            { key: 'STW', line: 'TML', code: 'STW', name: { en: 'Sha Tin Wai', tc: '沙田圍', sc: '沙田围' }, lat: 22.3807, lng: 114.1945, isTerminal: false },
+            { key: 'CKT', line: 'TML', code: 'CKT', name: { en: 'Che Kung Temple', tc: '車公廟', sc: '车公庙' }, lat: 22.3755, lng: 114.1866, isTerminal: false },
+            { key: 'TAW', line: 'TML', code: 'TAW', name: { en: 'Tai Wai', tc: '大圍', sc: '大围' }, lat: 22.3732, lng: 114.1783, isTerminal: false },
+            { key: 'HIK', line: 'TML', code: 'HIK', name: { en: 'Hin Keng', tc: '顯徑', sc: '显径' }, lat: 22.3637, lng: 114.1717, isTerminal: false },
+            { key: 'DIH', line: 'TML', code: 'DIH', name: { en: 'Diamond Hill', tc: '鑽石山', sc: '钻石山' }, lat: 22.3402, lng: 114.2017, isTerminal: false },
+            { key: 'KAT', line: 'TML', code: 'KAT', name: { en: 'Kai Tak', tc: '啟德', sc: '启德' }, lat: 22.3323, lng: 114.1966, isTerminal: false },
+            { key: 'SUW', line: 'TML', code: 'SUW', name: { en: 'Sung Wong Toi', tc: '宋皇臺', sc: '宋皇台' }, lat: 22.3275, lng: 114.1906, isTerminal: false },
+            { key: 'TKW', line: 'TML', code: 'TKW', name: { en: 'To Kwa Wan', tc: '土瓜灣', sc: '土瓜湾' }, lat: 22.3168, lng: 114.1887, isTerminal: false },
+            { key: 'HOM', line: 'TML', code: 'HOM', name: { en: 'Ho Man Tin', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
+            { key: 'HUH', line: 'TML', code: 'HUH', name: { en: 'Hung Hom', tc: '紅磡', sc: '红磡' }, lat: 22.3031, lng: 114.1818, isTerminal: false },
+            { key: 'ETS', line: 'TML', code: 'ETS', name: { en: 'East Tsim Sha Tsui', tc: '尖東', sc: '尖东' }, lat: 22.2963, lng: 114.1748, isTerminal: false },
+            { key: 'AUS', line: 'TML', code: 'AUS', name: { en: 'Austin', tc: '柯士甸', sc: '柯士甸' }, lat: 22.3045, lng: 114.1661, isTerminal: false },
+            { key: 'NAC', line: 'TML', code: 'NAC', name: { en: 'Nam Cheong', tc: '南昌', sc: '南昌' }, lat: 22.3253, lng: 114.1539, isTerminal: false },
+            { key: 'MEF', line: 'TML', code: 'MEF', name: { en: 'Mei Foo', tc: '美孚', sc: '美孚' }, lat: 22.3374, lng: 114.1396, isTerminal: false },
+            { key: 'TWW', line: 'TML', code: 'TWW', name: { en: 'Tsuen Wan West', tc: '荃灣西', sc: '荃湾西' }, lat: 22.3686, lng: 114.1114, isTerminal: false },
+            { key: 'KSR', line: 'TML', code: 'KSR', name: { en: 'Kam Sheung Road', tc: '錦上路', sc: '锦上路' }, lat: 22.4343, lng: 114.0645, isTerminal: false },
+            { key: 'YUL_TML', line: 'TML', code: 'YUL', name: { en: 'Yuen Long', tc: '元朗', sc: '元朗' }, lat: 22.4462, lng: 114.0347, isTerminal: false },
+            { key: 'LOP', line: 'TML', code: 'LOP', name: { en: 'Long Ping', tc: '朗屏', sc: '朗屏' }, lat: 22.4475, lng: 114.0255, isTerminal: false },
+            { key: 'TIS_TML', line: 'TML', code: 'TIS', name: { en: 'Tin Shui Wai', tc: '天水圍', sc: '天水围' }, lat: 22.4462, lng: 114.0049, isTerminal: false },
+            { key: 'SIH_TML', line: 'TML', code: 'SIH', name: { en: 'Siu Hong', tc: '兆康', sc: '兆康' }, lat: 22.4111, lng: 113.9789, isTerminal: false },
+            { key: 'TUM_TML', line: 'TML', code: 'TUM', name: { en: 'Tuen Mun', tc: '屯門', sc: '屯门' }, lat: 22.3948, lng: 113.9739, isTerminal: true },
+
+            { key: 'LRT_001', line: 'LRT_TM', code: '001', name: { en: 'Ferry Pier', tc: '屯門碼頭', sc: '屯门码头' }, lat: 22.3725, lng: 113.9652, isTerminal: true },
+            { key: 'LRT_010', line: 'LRT_TM', code: '010', name: { en: 'Melody Garden', tc: '美樂', sc: '美乐' }, lat: 22.3735, lng: 113.9608, isTerminal: false },
+            { key: 'LRT_015', line: 'LRT_TM', code: '015', name: { en: 'Butterfly', tc: '蝴蝶', sc: '蝴蝶' }, lat: 22.3758, lng: 113.9601, isTerminal: false },
+            { key: 'LRT_020', line: 'LRT_TM', code: '020', name: { en: 'Light Rail Depot', tc: '輕鐵車廠', sc: '轻铁车厂' }, lat: 22.3801, lng: 113.9622, isTerminal: false },
+            { key: 'LRT_030', line: 'LRT_TM', code: '030', name: { en: 'Lung Mun', tc: '龍門', sc: '龙门' }, lat: 22.3845, lng: 113.9658, isTerminal: false },
+            { key: 'LRT_040', line: 'LRT_TM', code: '040', name: { en: 'Tsing Shan Tsuen', tc: '青山村', sc: '青山村' }, lat: 22.3892, lng: 113.9665, isTerminal: false },
+            { key: 'LRT_050', line: 'LRT_TM', code: '050', name: { en: 'Tsing Wun', tc: '青雲', sc: '青云' }, lat: 22.3920, lng: 113.9680, isTerminal: false },
+            { key: 'LRT_060', line: 'LRT_TM', code: '060', name: { en: 'Kin On', tc: '建安', sc: '建安' }, lat: 22.3955, lng: 113.9698, isTerminal: false },
+            { key: 'LRT_070', line: 'LRT_TM', code: '070', name: { en: 'Ho Tin', tc: '河田', sc: '河田' }, lat: 22.3970, lng: 113.9725, isTerminal: false },
+            { key: 'LRT_075', line: 'LRT_TM', code: '075', name: { en: 'Choy Yee Bridge', tc: '蔡意橋', sc: '蔡意桥' }, lat: 22.3988, lng: 113.9740, isTerminal: false },
+            { key: 'LRT_080', line: 'LRT_TM', code: '080', name: { en: 'Affluence', tc: '澤豐', sc: '泽丰' }, lat: 22.4015, lng: 113.9760, isTerminal: false },
+            { key: 'LRT_090', line: 'LRT_TM', code: '090', name: { en: 'Tuen Mun Hospital', tc: '屯門醫院', sc: '屯门医院' }, lat: 22.4065, lng: 113.9772, isTerminal: false },
+            { key: 'SIH_TML', line: 'LRT_TM', code: '100', name: { en: 'Siu Hong', tc: '兆康', sc: '兆康' }, lat: 22.4111, lng: 113.9789, isTerminal: false },
+            { key: 'LRT_110', line: 'LRT_TM', code: '110', name: { en: 'Kei Lun', tc: '麒麟', sc: '麒麟' }, lat: 22.4128, lng: 113.9768, isTerminal: false },
+            { key: 'LRT_120', line: 'LRT_TM', code: '120', name: { en: 'Ching Chung', tc: '青松', sc: '青松' }, lat: 22.4075, lng: 113.9748, isTerminal: false },
+            { key: 'LRT_130', line: 'LRT_TM', code: '130', name: { en: 'Kin Sang', tc: '建生', sc: '建生' }, lat: 22.4070, lng: 113.9712, isTerminal: false },
+            { key: 'LRT_140', line: 'LRT_TM', code: '140', name: { en: 'Tin King', tc: '田景', sc: '田景' }, lat: 22.4082, lng: 113.9680, isTerminal: false },
+            { key: 'LRT_150', line: 'LRT_TM', code: '150', name: { en: 'Leung King', tc: '良景', sc: '良景' }, lat: 22.4065, lng: 113.9658, isTerminal: false },
+            { key: 'LRT_160', line: 'LRT_TM', code: '160', name: { en: 'San Wai', tc: '新圍', sc: '新围' }, lat: 22.4042, lng: 113.9652, isTerminal: false },
+            { key: 'LRT_170', line: 'LRT_TM', code: '170', name: { en: 'Shek Pai', tc: '石排', sc: '石排' }, lat: 22.4005, lng: 113.9660, isTerminal: false },
+            { key: 'LRT_180', line: 'LRT_TM', code: '180', name: { en: 'Shan King (North)', tc: '山景(北)', sc: '山景(北)' }, lat: 22.3980, lng: 113.9645, isTerminal: false },
+            { key: 'LRT_190', line: 'LRT_TM', code: '190', name: { en: 'Shan King (South)', tc: '山景(南)', sc: '山景(南)' }, lat: 22.3952, lng: 113.9650, isTerminal: false },
+            { key: 'LRT_200', line: 'LRT_TM', code: '200', name: { en: 'Ming Kum', tc: '鳴琴', sc: '鸣琴' }, lat: 22.3970, lng: 113.9668, isTerminal: false },
+            { key: 'LRT_212', line: 'LRT_TM', code: '212', name: { en: 'Tai Hing (North)', tc: '大興(北)', sc: '大兴(北)' }, lat: 22.4010, lng: 113.9702, isTerminal: false },
+            { key: 'LRT_220', line: 'LRT_TM', code: '220', name: { en: 'Tai Hing (South)', tc: '大興(南)', sc: '大兴(南)' }, lat: 22.3992, lng: 113.9715, isTerminal: false },
+            { key: 'LRT_230', line: 'LRT_TM', code: '230', name: { en: 'Ngan Wai', tc: '銀圍', sc: '银围' }, lat: 22.3980, lng: 113.9730, isTerminal: false },
+            { key: 'LRT_240', line: 'LRT_TM', code: '240', name: { en: 'Siu Hei', tc: '兆禧', sc: '兆禧' }, lat: 22.3735, lng: 113.9680, isTerminal: false },
+            { key: 'LRT_250', line: 'LRT_TM', code: '250', name: { en: 'Hoi Wong Road', tc: '海皇路', sc: '海皇路' }, lat: 22.3780, lng: 113.9715, isTerminal: false },
+            { key: 'LRT_260', line: 'LRT_TM', code: '260', name: { en: 'Goodview Garden', tc: '豐景園', sc: '丰景园' }, lat: 22.3812, lng: 113.9740, isTerminal: false },
+            { key: 'LRT_265', line: 'LRT_TM', code: '265', name: { en: 'Siu Lun', tc: '兆麟', sc: '兆麟' }, lat: 22.3842, lng: 113.9765, isTerminal: false },
+            { key: 'LRT_270', line: 'LRT_TM', code: '270', name: { en: 'On Ting', tc: '安定', sc: '安定' }, lat: 22.3875, lng: 113.9758, isTerminal: false },
+            { key: 'LRT_275', line: 'LRT_TM', code: '275', name: { en: 'Yau Oi', tc: '友愛', sc: '友爱' }, lat: 22.3888, lng: 113.9738, isTerminal: true },
+            { key: 'LRT_280', line: 'LRT_TM', code: '280', name: { en: 'Town Centre', tc: '市中心', sc: '市中心' }, lat: 22.3912, lng: 113.9754, isTerminal: false },
+            { key: 'TUM_TML', line: 'LRT_TM', code: '295', name: { en: 'Tuen Mun', tc: '屯門', sc: '屯门' }, lat: 22.3948, lng: 113.9739, isTerminal: false },
+            { key: 'LRT_300', line: 'LRT_TM', code: '300', name: { en: 'Pui To', tc: '杯渡', sc: '杯渡' }, lat: 22.3925, lng: 113.9780, isTerminal: false },
+            { key: 'LRT_320', line: 'LRT_TM', code: '320', name: { en: 'Prime View', tc: '景峰', sc: '景峰' }, lat: 22.3995, lng: 113.9790, isTerminal: false },
+            { key: 'LRT_330', line: 'LRT_TM', code: '330', name: { en: 'Fung Tei', tc: '鳳地', sc: '凤地' }, lat: 22.4045, lng: 113.9795, isTerminal: false },
+            { key: 'LRT_920', line: 'LRT_TM', code: '920', name: { en: 'Sam Shing', tc: '三聖', sc: '三圣' }, lat: 22.3802, lng: 113.9785, isTerminal: true },
+
+            { key: 'TIS_TML', line: 'LRT_TSW', code: '430', name: { en: 'Tin Shui Wai', tc: '天水圍', sc: '天水围' }, lat: 22.4462, lng: 114.0049, isTerminal: false },
+            { key: 'LRT_435', line: 'LRT_TSW', code: '435', name: { en: 'Tin Tsz', tc: '天慈', sc: '天慈' }, lat: 22.4502, lng: 114.0035, isTerminal: false },
+            { key: 'LRT_445', line: 'LRT_TSW', code: '445', name: { en: 'Tin Yiu', tc: '天耀', sc: '天耀' }, lat: 22.4508, lng: 114.0008, isTerminal: false },
+            { key: 'LRT_448', line: 'LRT_TSW', code: '448', name: { en: 'Locwood', tc: '樂湖', sc: '乐湖' }, lat: 22.4535, lng: 114.0002, isTerminal: false },
+            { key: 'LRT_450', line: 'LRT_TSW', code: '450', name: { en: 'Tin Wu', tc: '天湖', sc: '天湖' }, lat: 22.4552, lng: 114.0022, isTerminal: false },
+            { key: 'LRT_455', line: 'LRT_TSW', code: '455', name: { en: 'Ginza', tc: '銀座', sc: '银座' }, lat: 22.4578, lng: 114.0028, isTerminal: false },
+            { key: 'LRT_460', line: 'LRT_TSW', code: '460', name: { en: 'Tin Wing', tc: '天榮', sc: '天荣' }, lat: 22.4608, lng: 114.0018, isTerminal: false },
+            { key: 'LRT_468', line: 'LRT_TSW', code: '468', name: { en: 'Chestwood', tc: '翠湖', sc: '翠湖' }, lat: 22.4590, lng: 113.9985, isTerminal: false },
+            { key: 'LRT_480', line: 'LRT_TSW', code: '480', name: { en: 'Chung Fu', tc: '頌富', sc: '颂富' }, lat: 22.4602, lng: 113.9960, isTerminal: false },
+            { key: 'LRT_500', line: 'LRT_TSW', code: '500', name: { en: 'Tin Fu', tc: '天富', sc: '天富' }, lat: 22.4630, lng: 113.9962, isTerminal: false },
+            { key: 'LRT_510', line: 'LRT_TSW', code: '510', name: { en: 'Grandeur Terrace', tc: '天逸/天恒', sc: '天逸/天恒' }, lat: 22.4640, lng: 113.9975, isTerminal: false },
+            { key: 'LRT_520', line: 'LRT_TSW', code: '520', name: { en: 'Tin Sau', tc: '天秀', sc: '天秀' }, lat: 22.4645, lng: 114.0015, isTerminal: false },
+            { key: 'LRT_530', line: 'LRT_TSW', code: '530', name: { en: 'Wetland Park', tc: '濕地公園', sc: '湿地公园' }, lat: 22.4678, lng: 114.0040, isTerminal: false },
+            { key: 'LRT_540', line: 'LRT_TSW', code: '540', name: { en: 'Tin Heng', tc: '天恒', sc: '天恒' }, lat: 22.4682, lng: 113.9980, isTerminal: false },
+            { key: 'LRT_550', line: 'LRT_TSW', code: '550', name: { en: 'Tin Yat', tc: '天逸', sc: '天逸' }, lat: 22.4646, lng: 113.9989, isTerminal: true },
+
+            { key: 'LRT_560', line: 'LRT_YL', code: '560', name: { en: 'Shui Pin Wai', tc: '水邊圍', sc: '水边围' }, lat: 22.4445, lng: 114.0205, isTerminal: false },
+            { key: 'LRT_570', line: 'LRT_YL', code: '570', name: { en: 'Fung Nin Road', tc: '豐年路', sc: '丰年路' }, lat: 22.4448, lng: 114.0242, isTerminal: false },
+            { key: 'LRT_580', line: 'LRT_YL', code: '580', name: { en: 'Hong Lok Road', tc: '康樂路', sc: '康乐路' }, lat: 22.4442, lng: 114.0280, isTerminal: false },
+            { key: 'LRT_590', line: 'LRT_YL', code: '590', name: { en: 'Tai Tong Road', tc: '大棠路', sc: '大棠路' }, lat: 22.4440, lng: 114.0308, isTerminal: false },
+            { key: 'YUL_TML', line: 'LRT_YL', code: '600', name: { en: 'Yuen Long', tc: '元朗', sc: '元朗' }, lat: 22.4462, lng: 114.0347, isTerminal: true }
+        ];
+
+        // Station Code to Translated Name lookup table for Heavy Rail destinations
+        const HEAVY_DESTINATIONS = {
+            'HOK': { en: 'Hong Kong', tc: '香港', sc: '香港' },
+            'KOW': { en: 'Kowloon', tc: '九龍', sc: '九龙' },
+            'TSY': { en: 'Tsing Yi', tc: '青衣', sc: '青衣' },
+            'AIR': { en: 'Airport', tc: '機場', sc: '机场' },
+            'AWE': { en: 'AsiaWorld-Expo', tc: '博覽館', sc: '博览馆' },
+            'OLY': { en: 'Olympic', tc: '奧運', sc: '奥运' },
+            'NAC': { en: 'Nam Cheong', tc: '南昌', sc: '南昌' },
+            'LAK': { en: 'Lai King', tc: '荔景', sc: '荔景' },
+            'SUN': { en: 'Sunny Bay', tc: '欣澳', sc: '欣澳' },
+            'TUC': { en: 'Tung Chung', tc: '東涌', sc: '东涌' },
+            'CEN': { en: 'Central', tc: '中環', sc: '中环' },
+            'ADM': { en: 'Admiralty', tc: '金鐘', sc: '金钟' },
+            'TST': { en: 'Tsim Sha Tsui', tc: '尖沙咀', sc: '尖沙咀' },
+            'JOR': { en: 'Jordan', tc: '佐敦', sc: '佐敦' },
+            'YMT': { en: 'Yau Ma Tei', tc: '油麻地', sc: '油麻地' },
+            'MOK': { en: 'Mong Kok', tc: '旺角', sc: '旺角' },
+            'PRE': { en: 'Prince Edward', tc: '太子', sc: '太子' },
+            'SSP': { en: 'Sham Shui Po', tc: '深水埗', sc: '深水埗' },
+            'CSW': { en: 'Cheung Sha Wan', tc: '長沙灣', sc: '长沙湾' },
+            'LCK': { en: 'Lai Chi Kok', tc: '荔枝角', sc: '荔枝角' },
+            'MEF': { en: 'Mei Foo', tc: '美孚', sc: '美孚' },
+            'KWF': { en: 'Kwai Fong', tc: '葵芳', sc: '葵芳' },
+            'KWH': { en: 'Kwai Hing', tc: '葵興', sc: '葵兴' },
+            'TWH': { en: 'Tai Wo Hau', tc: '大窩口', sc: '大窝口' },
+            'TSW': { en: 'Tsuen Wan', tc: '荃灣', sc: '荃湾' },
+            'WHA': { en: 'Whampoa', tc: '黃埔', sc: '黄埔' },
+            'HOM': { en: 'Ho Man Tin', tc: '何文田', sc: '何文田' },
+            'SKM': { en: 'Shek Kip Mei', tc: '石硤尾', sc: '石硖尾' },
+            'KOT': { en: 'Kowloon Tong', tc: '九龍塘', sc: '九龙塘' },
+            'LOF': { en: 'Lok Fu', tc: '樂富', sc: '乐富' },
+            'WTS': { en: 'Wong Tai Sin', tc: '黃大仙', sc: '黄大仙' },
+            'DIH': { en: 'Diamond Hill', tc: '鑽石山', sc: '钻石山' },
+            'CHH': { en: 'Choi Hung', tc: '彩虹', sc: '彩虹' },
+            'KOB': { en: 'Kowloon Bay', tc: '九龍灣', sc: '九龙湾' },
+            'NTK': { en: 'Ngau Tau Kok', tc: '牛頭角', sc: '牛头角' },
+            'KWT': { en: 'Kwun Tong', tc: '觀塘', sc: '观塘' },
+            'LAT': { en: 'Lam Tin', tc: '藍田', sc: '蓝田' },
+            'YAT': { en: 'Yau Tong', tc: '油塘', sc: '油塘' },
+            'TIK': { en: 'Tiu Keng Leng', tc: '調景嶺', sc: '调景岭' },
+            'KET': { en: 'Kennedy Town', tc: '堅尼地城', sc: '坚尼地城' },
+            'HKU': { en: 'HKU', tc: '香港大學', sc: '香港大学' },
+            'SYP': { en: 'Sai Ying Pun', tc: '西營盤', sc: '西营盘' },
+            'SHW': { en: 'Sheung Wan', tc: '上環', sc: '上环' },
+            'WAC': { en: 'Wan Chai', tc: '灣仔', sc: '湾仔' },
+            'CAB': { en: 'Causeway Bay', tc: '銅鑼灣', sc: '铜锣湾' },
+            'TIN': { en: 'Tin Hau', tc: '天后', sc: '天后' },
+            'FOT': { en: 'Fo Tan / Fortress Hill', tc: '火炭 / 炮台山', sc: '火炭 / 炮台山' },
+            'NOP': { en: 'North Point', tc: '北角', sc: '北角' },
+            'QUO': { en: 'Quarry Bay', tc: '鰂魚涌', sc: '鰂鱼涌' },
+            'TAK': { en: 'Tai Koo', tc: '太古', sc: '太古' },
+            'SKW': { en: 'Sai Wan Ho', tc: '西灣河', sc: '西湾河' },
+            'SWH': { en: 'Shau Kei Wan', tc: '筲箕灣', sc: '筲箕湾' },
+            'HFC': { en: 'Heng Fa Chuen', tc: '杏花邨', sc: '杏花邨' },
+            'CHW': { en: 'Chai Wan', tc: '柴灣', sc: '柴湾' },
+            'TKO': { en: 'Tseung Kwan O', tc: '將軍澳', sc: '将军澳' },
+            'LHP': { en: 'LOHAS Park', tc: '康城', sc: '康城' },
+            'HAO': { en: 'Hang Hau', tc: '坑口', sc: '坑口' },
+            'POA': { en: 'Po Lam', tc: '寶琳', sc: '宝琳' },
+            'EXC': { en: 'Exhibition Centre', tc: '會展', sc: '会展' },
+            'HUH': { en: 'Hung Hom', tc: '紅磡', sc: '红磡' },
+            'MKK': { en: 'Mong Kok East', tc: '旺角東', sc: '旺角东' },
+            'TAW': { en: 'Tai Wai', tc: '大圍', sc: '大围' },
+            'SHT': { en: 'Sha Tin', tc: '沙田', sc: '沙田' },
+            'RAC': { en: 'Racecourse', tc: '馬場', sc: '马场' },
+            'UNI': { en: 'University', tc: '大學', sc: '大学' },
+            'TAP': { en: 'Tai Po Market', tc: '大埔墟', sc: '大埔墟' },
+            'TWO': { en: 'Tai Wo', tc: '太和', sc: '太和' },
+            'FAN': { en: 'Fanling', tc: '粉嶺', sc: '粉岭' },
+            'SHS': { en: 'Sheung Shui', tc: '上水', sc: '上水' },
+            'LOW': { en: 'Lo Wu', tc: '羅湖', sc: '罗湖' },
+            'LMC': { en: 'Lok Ma Chau', tc: '落馬洲', sc: '落马洲' },
+            'OCP': { en: 'Ocean Park', tc: '海洋公園', sc: '海洋公园' },
+            'WCH': { en: 'Wong Chuk Hang', tc: '黃竹坑', sc: '黄竹坑' },
+            'LET': { en: 'Lei Tung', tc: '利東', sc: '利东' },
+            'SOH': { en: 'South Horizons', tc: '海怡半島', sc: '海怡半岛' },
+            'WKS': { en: 'Wu Kai Sha', tc: '烏溪沙', sc: '乌溪沙' },
+            'MOS': { en: 'Ma On Shan', tc: '馬鞍山', sc: '马鞍山' },
+            'HEO': { en: 'Heng On', tc: '恒安', sc: '恒安' },
+            'TSH': { en: 'Tai Shui Hang', tc: '大水坑', sc: '大水坑' },
+            'CIO': { en: 'City One', tc: '第一城', sc: '第一城' },
+            'STW': { en: 'Sha Tin Wai', tc: '沙田圍', sc: '沙田围' },
+            'CKT': { en: 'Che Kung Temple', tc: '車公廟', sc: '车公庙' },
+            'HIK': { en: 'Hin Keng', tc: '顯徑', sc: '显径' },
+            'KAT': { en: 'Kai Tak', tc: '啟德', sc: '启德' },
+            'SUW': { en: 'Sung Wong Toi', tc: '宋皇臺', sc: '宋皇台' },
+            'TKW': { en: 'To Kwa Wan', tc: '土瓜灣', sc: '土瓜湾' },
+            'ETS': { en: 'East Tsim Sha Tsui', tc: '尖東', sc: '尖东' },
+            'AUS': { en: 'Austin', tc: '柯士甸', sc: '柯士甸' },
+            'TWW': { en: 'Tsuen Wan West', tc: '荃灣西', sc: '荃湾西' },
+            'KSR': { en: 'Kam Sheung Road', tc: '錦上路', sc: '锦上路' },
+            'YUL': { en: 'Yuen Long', tc: '元朗', sc: '元朗' },
+            'LOP': { en: 'Long Ping', tc: '朗屏', sc: '朗屏' },
+            'TIS': { en: 'Tin Shui Wai', tc: '天水圍', sc: '天水围' },
+            'SIH': { en: 'Siu Hong', tc: '兆康', sc: '兆康' },
+            'TUM': { en: 'Tuen Mun', tc: '屯門', sc: '屯门' }
+        };
+
+        const lineSelect = document.getElementById('lineSelect');
+        const stationSelect = document.getElementById('stationSelect');
+        const gpsBtn = document.getElementById('gpsBtn');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const countdownText = document.getElementById('countdownText');
+        const syncIcon = document.getElementById('syncIcon');
+        const interchangeBadges = document.getElementById('interchangeBadges');
+        const interchangePills = document.getElementById('interchangePills');
+
+        let countdownTimer = null;
+        let timeRemaining = 15;
+        const REFRESH_RATE = 15;
+
+        // Convert Traditional Chinese strings to Simplified Chinese
+        function tcToSc(text) {
+            if (!text) return text;
+            const scMap = {
+                '門': '门', '鐵': '铁', '廠': '厂', '圍': '围', '朗': '朗', '康': '康', '愛': '爱', '聖': '圣',
+                '逸': '逸', '灣': '湾', '碼': '码', '頭': '头', '澤': '泽', '豐': '丰', '醫': '医', '院': '院',
+                '麒': '麒', '麟': '麟', '松': '松', '景': '景', '興': '兴', '銀': '银', '安': '安', '橋': '桥',
+                '鳳': '凤', '綫': '线', '車': '车', '廂': '厢', '區': '区', '站': '站', '臺': '台', '東': '东',
+                '西': '西', '北': '北', '國': '国', '際': '际', '博': '博', '覽': '览', '館': '馆', '奧': '奥',
+                '運': '运', '荔': '荔', '欣': '欣', '涌': '涌', '環': '环', '金': '金', '鐘': '钟', '咀': '咀',
+                '華': '华', '埔': '埔', '硤': '硖', '鑽': '钻', '石': '石', '嶺': '岭', '堅': '坚', '尼': '尼',
+                '盤': '盘', '銅': '铜', '炮': '炮', '鰂': '鰂', '魚': '鱼', '筲': '筲', '箕': '箕', '邨': '邨',
+                '柴': '柴', '將': '将', '軍': '军', '寶': '宝', '琳': '琳', '會': '会', '展': '展', '紅': '红',
+                '磡': '磡', '場': '场', '學': '学', '墟': '墟', '粉': '粉', '羅': '罗', '落': '落', '馬': '马',
+                '洲': '洲', '海': '海', '洋': '洋', '島': '岛', '烏': '乌', '溪': '溪', '沙': '沙', '鞍': '鞍',
+                '恆': '恒', '車': '车', '公': '公', '廟': '庙', '顯': '显', '徑': '径', '啟': '启', '德': '德',
+                '瓜': '瓜', '柯': '柯', '士': '士', '甸': '甸', '錦': '锦', '屏': '屏', '濕': '湿', '座': '座',
+                '翠': '翠', '頌': '颂', '恒': '恒'
+            };
+            return text.split('').map(c => scMap[c] || c).join('');
+        }
+
+        function init() {
+            setLanguage('tc'); // Set initial language to TC
+            populateLineDropdown();
+            lineSelect.value = 'TML'; // Default line
+            populateStationDropdown('TML');
+
+            lineSelect.addEventListener('change', (e) => {
+                populateStationDropdown(e.target.value);
+                fetchRealTimeData();
+            });
+
+            stationSelect.addEventListener('change', fetchRealTimeData);
+            gpsBtn.addEventListener('click', locateNearestStation);
+
+            fetchRealTimeData();
+        }
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            ['en', 'tc', 'sc'].forEach(l => {
+                const btn = document.getElementById(`langBtn-${l}`);
+                if (btn) {
+                    if (l === lang) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                }
+            });
+
+            const t = TRANSLATIONS[lang];
+            document.getElementById('uiAppTitle').textContent = t.appTitle;
+            document.getElementById('uiSubtitle').textContent = t.subtitle;
+            document.getElementById('lblLineSelect').textContent = t.browseByLine;
+            document.getElementById('lblStationSelect').textContent = t.selectStation;
+            document.getElementById('uiGpsBtnText').textContent = t.nearestStation;
+            document.getElementById('uiInterchangeLabel').textContent = t.connectedLines;
+            document.getElementById('uiFooterText').textContent = t.footerText;
+
+            // Preserve current selections when language switches
+            const currentSelectedLine = lineSelect.value || 'TML';
+            const currentStationKey = stationSelect.value || 'YUL_TML';
+
+            populateLineDropdown();
+            lineSelect.value = currentSelectedLine;
+            populateStationDropdown(currentSelectedLine, currentStationKey);
+
+            fetchRealTimeData();
+        }
+
+        function populateLineDropdown() {
+            lineSelect.innerHTML = '';
+            Object.entries(LINE_META).forEach(([code, meta]) => {
+                const opt = document.createElement('option');
+                opt.value = code;
+                opt.textContent = meta.name[currentLang] || meta.name.en;
+                lineSelect.appendChild(opt);
+            });
+        }
+
+        function populateStationDropdown(lineCode, selectStationKey = null) {
+            stationSelect.innerHTML = '';
+            const filtered = STATIONS.filter(s => s.line === lineCode);
             
-            <div>
-              <div class="flex items-center space-x-2">
-                <span class="text-xs font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                  ${translations[lang].platform} ${item.platform}
-                </span>
-                <span class="text-xs text-slate-400 font-mono">${item.timeStr}</span>
-              </div>
-              <div class="text-sm sm:text-base font-bold text-slate-100 mt-1 flex items-center space-x-1.5">
-                <span class="text-xs text-slate-500 font-normal">${translations[lang].towards}</span>
-                <span>${item.destination[lang]}</span>
-              </div>
-            </div>
-          </div>
+            filtered.forEach(station => {
+                const opt = document.createElement('option');
+                opt.value = station.key; 
+                opt.textContent = station.name[currentLang] || station.name.en;
+                stationSelect.appendChild(opt);
+            });
 
-          <!-- Countdown / Status Badge -->
-          <div class="flex items-center justify-between sm:justify-end space-x-4 border-t sm:border-t-0 border-slate-800 pt-2 sm:pt-0">
-            <div class="text-left sm:text-right">
-              <div class="text-xs text-slate-400">${item.cars ? `${item.cars} ${translations[lang].cars}` : ''}</div>
-              <div class="flex items-baseline space-x-1">
-                ${minutesText}
-              </div>
-            </div>
+            if (selectStationKey && filtered.some(s => s.key === selectStationKey)) {
+                stationSelect.value = selectStationKey;
+            } else if (filtered.length > 0) {
+                stationSelect.value = filtered[0].key;
+            }
+        }
+
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; 
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2); 
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
+            return R * c; 
+        }
+
+        function locateNearestStation() {
+            const t = TRANSLATIONS[currentLang];
+            updateStatus(t.locatingGps, 'yellow');
+            gpsBtn.disabled = true;
+            gpsBtn.innerHTML = `<i class="ph-bold ph-spinner animate-spin text-base"></i> <span>${t.locatingGps}</span>`;
+
+            if (!navigator.geolocation) {
+                updateStatus(t.gpsDenied, 'red');
+                resetGpsBtn();
+                fetchRealTimeData();
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    let nearest = null;
+                    let minDistance = Infinity;
+
+                    STATIONS.forEach(station => {
+                        const dist = getDistance(pos.coords.latitude, pos.coords.longitude, station.lat, station.lng);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            nearest = station;
+                        }
+                    });
+
+                    if (nearest) {
+                        const stnName = nearest.name[currentLang] || nearest.name.en;
+                        const msg = t.nearestFound.replace('{name}', stnName).replace('{dist}', minDistance.toFixed(1));
+                        updateStatus(msg, 'green');
+                        
+                        lineSelect.value = nearest.line;
+                        populateStationDropdown(nearest.line, nearest.key);
+                        fetchRealTimeData();
+                    }
+                    resetGpsBtn();
+                },
+                (err) => {
+                    updateStatus(t.gpsFailed, 'red');
+                    resetGpsBtn();
+                    fetchRealTimeData();
+                },
+                { timeout: 8000 }
+            );
+        }
+
+        function resetGpsBtn() {
+            const t = TRANSLATIONS[currentLang];
+            gpsBtn.disabled = false;
+            gpsBtn.innerHTML = `<i class="ph-bold ph-crosshair text-base"></i> <span>${t.nearestStation}</span>`;
+        }
+
+        function updateStatus(msg, color) {
+            statusText.textContent = msg;
+            const colors = { yellow: 'bg-yellow-500', green: 'bg-emerald-500', red: 'bg-rose-500' };
+            statusDot.className = `w-2.5 h-2.5 rounded-full animate-pulse shrink-0 ${colors[color]}`;
+        }
+
+        function startCountdown() {
+            if (countdownTimer) clearInterval(countdownTimer);
+            timeRemaining = REFRESH_RATE;
+            syncIcon.classList.remove('animate-spin');
+            countdownText.textContent = `${timeRemaining}s`;
+
+            countdownTimer = setInterval(() => {
+                timeRemaining--;
+                if (timeRemaining <= 0) {
+                    clearInterval(countdownTimer);
+                    fetchRealTimeData();
+                } else {
+                    countdownText.textContent = `${timeRemaining}s`;
+                }
+            }, 1000);
+        }
+
+        async function fetchRealTimeData() {
+            const t = TRANSLATIONS[currentLang];
+            const selectedKey = stationSelect.value;
+            if(!selectedKey) return;
+
+            const targetStationObj = STATIONS.find(s => s.key === selectedKey);
+            if (!targetStationObj) return;
+
+            // INTERCHANGE LOGIC: Find all lines sharing the exact same key or English name
+            const activeStations = STATIONS.filter(s => s.key === targetStationObj.key || s.name.en === targetStationObj.name.en);
+
+            // RenderConnected Interchange Badges
+            renderInterchangePills(activeStations);
+
+            if (countdownTimer) clearInterval(countdownTimer);
+            syncIcon.classList.add('animate-spin');
+            countdownText.textContent = t.syncNow;
+            updateStatus(t.syncing, 'yellow');
             
-            <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700">
-              <i class="fa-solid fa-chevron-right text-xs"></i>
-            </div>
-          </div>
+            resultsContainer.innerHTML = `
+                <div class="glass-panel rounded-2xl p-12 text-center text-slate-400 space-y-3">
+                    <i class="ph-bold ph-spinner animate-spin text-4xl text-emerald-400"></i>
+                    <p class="text-sm font-medium">${t.syncing}</p>
+                </div>
+            `;
 
-        </div>
-      `;
-    }
+            try {
+                // Fetch concurrently for all connected lines at this interchange station
+                const fetchPromises = activeStations.map(async (stn) => {
+                    try {
+                        let url, res, data;
+                        if (stn.line.startsWith('LRT')) {
+                            url = `https://rt.data.gov.hk/v1/transport/mtr/lrt/getSchedule?station_id=${stn.code}`;
+                            res = await fetch(url);
+                            data = await res.json();
+                            return { type: 'LRT', lineCode: stn.line, stn, data, success: data && data.status === 1 };
+                        } else {
+                            url = `https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=${stn.line}&sta=${stn.code}`;
+                            res = await fetch(url);
+                            data = await res.json();
+                            return { type: 'HR', lineCode: stn.line, stn, data, success: data && (data.status === 1 || (data.data && Object.keys(data.data).length > 0)) };
+                        }
+                    } catch (err) {
+                        return { type: stn.line.startsWith('LRT') ? 'LRT' : 'HR', lineCode: stn.line, stn, success: false, error: err };
+                    }
+                });
 
-    /* =========================================================================
-       REALISTIC HK MTR & LIGHT RAIL SCHEDULE GENERATOR
-       ========================================================================= */
+                const results = await Promise.all(fetchPromises);
+                resultsContainer.innerHTML = ''; 
+                
+                let lastUpdateTime = new Date().toLocaleTimeString();
 
-    function generateHeavyRailScheduleData() {
-      const lineCode = document.getElementById('heavy-line-select').value;
-      const line = HEAVY_RAIL_LINES.find(l => l.code === lineCode) || HEAVY_RAIL_LINES[0];
-      const stationCode = document.getElementById('heavy-station-select').value;
-      const station = line.stations.find(s => s.code === stationCode) || line.stations[0];
+                results.forEach(result => {
+                    const meta = LINE_META[result.lineCode];
+                    const lineName = meta.name[currentLang] || meta.name.en;
 
-      const firstStation = line.stations[0];
-      const lastStation = line.stations[line.stations.length - 1];
+                    const sectionWrapper = document.createElement('div');
+                    sectionWrapper.className = "space-y-4";
+                    sectionWrapper.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="w-2.5 h-7 rounded-full ${meta.color}"></span>
+                            <h3 class="text-xl font-bold text-white tracking-wide">
+                                ${lineName}
+                            </h3>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5" id="grid-${result.lineCode}"></div>
+                    `;
+                    resultsContainer.appendChild(sectionWrapper);
+                    
+                    const grid = document.getElementById(`grid-${result.lineCode}`);
 
-      const now = new Date();
-      const results = [];
+                    if (!result.success) {
+                        grid.innerHTML = `<div class="col-span-full glass-card rounded-2xl p-6 text-center text-rose-400 border-t-4 ${meta.border}">${t.apiError}</div>`;
+                        return;
+                    }
 
-      // Generate Upbound Train entries (towards end station)
-      if (station.code !== lastStation.code) {
-        const upOffsets = [2, 6, 11, 17];
-        upOffsets.forEach((mins, idx) => {
-          const arrTime = new Date(now.getTime() + mins * 60000);
-          results.push({
-            id: `heavy-up-${idx}`,
-            dir: 'UP',
-            routeCode: line.code,
-            badgeLabel: line.code,
-            lineColor: line.color,
-            platform: '1',
-            destination: lastStation.name,
-            minutes: mins,
-            timeStr: arrTime.toTimeString().substring(0, 5),
-            cars: line.code === 'EAL' ? 9 : (line.code === 'SIL' ? 3 : 8)
-          });
-        });
-      }
+                    if (result.type === 'HR') {
+                        // Heavy Rail Data parsing
+                        const stationData = result.data.data[`${result.lineCode}-${result.stn.code}`];
+                        if (stationData) {
+                            if(stationData.curr_time) lastUpdateTime = stationData.curr_time.split(' ')[1] || lastUpdateTime;
+                            renderPlatform(grid, meta, t.dirUp, 'ph-arrow-circle-up', stationData.UP || [], result.stn.isTerminal, 'HR');
+                            renderPlatform(grid, meta, t.dirDown, 'ph-arrow-circle-down', stationData.DOWN || [], result.stn.isTerminal, 'HR');
+                        } else {
+                            grid.innerHTML = `<div class="col-span-full glass-card rounded-2xl p-6 text-center text-slate-400">${t.noTrains}</div>`;
+                        }
+                    } else if (result.type === 'LRT') {
+                        // Light Rail Data parsing
+                        const platforms = result.data.platform_list || [];
+                        if (platforms.length === 0) {
+                            grid.innerHTML = `<div class="col-span-full glass-card rounded-2xl p-6 text-center text-slate-400">${t.noTrains}</div>`;
+                        } else {
+                            platforms.forEach(plat => {
+                                const platTitle = `${t.platform} ${plat.platform_id}`;
+                                renderPlatform(grid, meta, platTitle, 'ph-train-regional', plat.route_list || [], result.stn.isTerminal, 'LRT');
+                            });
+                        }
+                    }
+                });
 
-      // Generate Downbound Train entries (towards start station)
-      if (station.code !== firstStation.code) {
-        const downOffsets = [1, 5, 10, 15];
-        downOffsets.forEach((mins, idx) => {
-          const arrTime = new Date(now.getTime() + mins * 60000);
-          results.push({
-            id: `heavy-down-${idx}`,
-            dir: 'DOWN',
-            routeCode: line.code,
-            badgeLabel: line.code,
-            lineColor: line.color,
-            platform: '2',
-            destination: firstStation.name,
-            minutes: mins,
-            timeStr: arrTime.toTimeString().substring(0, 5),
-            cars: line.code === 'EAL' ? 9 : (line.code === 'SIL' ? 3 : 8)
-          });
-        });
-      }
+                const syncMsg = t.liveSyncAt.replace('{time}', lastUpdateTime);
+                updateStatus(syncMsg, 'green');
 
-      return results;
-    }
+            } catch (error) {
+                console.error(error);
+                updateStatus(t.apiError, 'red');
+            } finally {
+                startCountdown();
+            }
+        }
 
-    function generateLrtScheduleData() {
-      const regionId = document.getElementById('lrt-region-select').value;
-      const region = LIGHT_RAIL_REGIONS.find(r => r.id === regionId) || LIGHT_RAIL_REGIONS[0];
-      const stopId = document.getElementById('lrt-stop-select').value;
-      const stop = region.stops.find(s => s.id === stopId) || region.stops[0];
+        function renderInterchangePills(activeStations) {
+            if (activeStations.length <= 1) {
+                interchangeBadges.classList.add('hidden');
+                interchangeBadges.classList.remove('flex');
+                return;
+            }
 
-      const now = new Date();
-      const results = [];
+            interchangePills.innerHTML = '';
+            activeStations.forEach(stn => {
+                const meta = LINE_META[stn.line];
+                if (meta) {
+                    const pill = document.createElement('span');
+                    pill.className = `text-xs px-2.5 py-1 rounded-full font-medium border ${meta.badge}`;
+                    pill.textContent = meta.name[currentLang] || meta.name.en;
+                    interchangePills.appendChild(pill);
+                }
+            });
 
-      // Generate Light Rail entries based on stop's operating routes
-      stop.routes.forEach((routeNo, rIdx) => {
-        const baseMins = [2 + rIdx, 7 + (rIdx * 2)];
-        baseMins.forEach((mins, mIdx) => {
-          const arrTime = new Date(now.getTime() + mins * 60000);
-          results.push({
-            id: `lrt-${routeNo}-${mIdx}`,
-            dir: mIdx % 2 === 0 ? 'UP' : 'DOWN',
-            route: routeNo,
-            routeCode: routeNo,
-            badgeLabel: 'LRT',
-            lineColor: '#E97200', // LRT Orange
-            platform: ((rIdx % 3) + 1).toString(),
-            destination: getLrtDestination(routeNo),
-            minutes: mins,
-            timeStr: arrTime.toTimeString().substring(0, 5),
-            cars: (parseInt(routeNo) % 2 === 0) ? 2 : 1
-          });
-        });
-      });
+            interchangeBadges.classList.remove('hidden');
+            interchangeBadges.classList.add('flex');
+        }
 
-      return results.sort((a, b) => a.minutes - b.minutes);
-    }
+        function calculateLoadHR(trains, index, isTerminal) {
+            const t1 = parseInt(trains[index].ttnt) || 0;
+            let loadFactor = isTerminal 
+                ? Math.max(8, 25 - (t1 * 3.5)) 
+                : 25 + (Math.max(0, (index + 1 < trains.length ? parseInt(trains[index + 1].ttnt) || (t1 + 3) : t1 + 3) - t1) * 7);
+            return Math.min(98, Math.max(12, Math.round(loadFactor)));
+        }
 
-    function getLrtDestination(routeNo) {
-      const destinations = {
-        '505': { en: 'Siu Hong', 'zh-HK': '兆康', 'zh-CN': '兆康' },
-        '507': { en: 'Tuen Mun Ferry Pier', 'zh-HK': '屯門碼頭', 'zh-CN': '屯门码头' },
-        '610': { en: 'Yuen Long', 'zh-HK': '元朗', 'zh-CN': '元朗' },
-        '614': { en: 'Yuen Long', 'zh-HK': '元朗', 'zh-CN': '元朗' },
-        '614P': { en: 'Siu Hong', 'zh-HK': '兆康', 'zh-CN': '兆康' },
-        '615': { en: 'Tuen Mun Ferry Pier', 'zh-HK': '屯門碼頭', 'zh-CN': '屯门码头' },
-        '615P': { en: 'Tuen Mun Ferry Pier', 'zh-HK': '屯門碼頭', 'zh-CN': '屯门码头' },
-        '705': { en: 'Tin Shui Wai Circular (Inner)', 'zh-HK': '天水圍循環綫 (內圈)', 'zh-CN': '天水围循环线 (内圈)' },
-        '706': { en: 'Tin Shui Wai Circular (Outer)', 'zh-HK': '天水圍循環綫 (外圈)', 'zh-CN': '天水围循环线 (外圈)' },
-        '751': { en: 'Tin Yi', 'zh-HK': '天逸', 'zh-CN': '天逸' },
-        '751P': { en: 'Tin Shui Wai', 'zh-HK': '天水圍', 'zh-CN': '天水围' },
-        '761P': { en: 'Yuen Long', 'zh-HK': '元朗', 'zh-CN': '元朗' }
-      };
+        function calculateLoadLRT(train) {
+            let mins = 0;
+            if (train.time_en && train.time_en.includes('min')) {
+                mins = parseInt(train.time_en) || 1;
+            }
+            let load = 65 - (mins * 6); 
+            if (train.train_length === 1) load += 28; // Single car trains get crowded faster
+            return Math.min(98, Math.max(15, Math.round(load)));
+        }
 
-      return destinations[routeNo] || { en: 'Terminus', 'zh-HK': '總站', 'zh-CN': '总站' };
-    }
-  </script>
+        function renderPlatform(grid, meta, title, iconClass, trains, isTerminal, type) {
+            const t = TRANSLATIONS[currentLang];
+            const container = document.createElement('div');
+            container.className = `glass-card rounded-2xl p-5 flex flex-col h-full border-t-4 ${meta.border} shadow-lg`;
+            
+            let html = `
+                <h4 class="text-base font-bold mb-4 flex items-center gap-2 text-slate-200">
+                    <i class="ph-bold ${iconClass} ${meta.text} text-xl"></i> 
+                    <span>${title}</span>
+                </h4>
+                <div class="flex-1 space-y-3">
+            `;
+
+            if (trains.length === 0) {
+                html += `<div class="bg-slate-900/60 rounded-xl p-6 text-center border border-slate-800 text-slate-400 text-xs font-medium">${t.noTrains}</div>`;
+            } else {
+                trains.forEach((train, index) => {
+                    let destName, minText, platText, loadFactor;
+
+                    if (type === 'HR') {
+                        // Heavy Rail
+                        const destObj = HEAVY_DESTINATIONS[train.dest];
+                        if (destObj) {
+                            destName = destObj[currentLang] || destObj.en;
+                        } else {
+                            destName = train.dest;
+                        }
+
+                        if (train.ttnt === "0") {
+                            minText = t.arriving;
+                        } else {
+                            minText = `${train.ttnt} ${t.min}`;
+                        }
+
+                        platText = `${t.platform} ${train.plat}`;
+                        loadFactor = calculateLoadHR(trains, index, isTerminal);
+                    } else {
+                        // Light Rail
+                        let rawDestName = train.dest_en;
+                        if (currentLang === 'tc') rawDestName = train.dest_ch || train.dest_en;
+                        else if (currentLang === 'sc') rawDestName = tcToSc(train.dest_ch || train.dest_en);
+
+                        destName = `${train.route_no} ${rawDestName}`;
+
+                        if (train.time_en === "-") {
+                            minText = t.departing;
+                        } else if (train.time_en === "arriving") {
+                            minText = t.arriving;
+                        } else {
+                            minText = train.time_en ? train.time_en.replace('min', t.min) : '-';
+                        }
+
+                        const carUnit = train.train_length > 1 ? t.cars : t.car;
+                        platText = `${train.train_length} ${carUnit}`;
+                        loadFactor = calculateLoadLRT(train);
+                    }
+                    
+                    let barColor = 'bg-emerald-500';
+                    let loadIcon = 'ph-users text-emerald-400';
+                    let loadText = t.loadComfortable;
+
+                    if (loadFactor >= 80) { 
+                        barColor = 'bg-rose-500'; 
+                        loadIcon = 'ph-warning text-rose-400'; 
+                        loadText = t.loadCrowded; 
+                    } else if (loadFactor >= 55) { 
+                        barColor = 'bg-amber-500'; 
+                        loadIcon = 'ph-users text-amber-400'; 
+                        loadText = t.loadStanding; 
+                    }
+
+                    html += `
+                        <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-800 shadow-sm hover:border-slate-700 transition">
+                            <div class="flex justify-between items-start mb-2.5">
+                                <div class="pr-2">
+                                    <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">${t.to}</p>
+                                    <p class="text-lg font-extrabold text-white leading-tight">${destName}</p>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <p class="text-2xl font-black text-white tracking-tight">${minText}</p>
+                                    <p class="text-[11px] font-semibold text-slate-400">${platText}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3 space-y-1.5">
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="flex items-center gap-1.5 text-slate-300 font-medium">
+                                        <i class="ph-bold ${loadIcon}"></i> ${loadText}
+                                    </span>
+                                    <span class="font-mono font-bold text-slate-300">${loadFactor}%</span>
+                                </div>
+                                <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                                    <div class="${barColor} h-2 rounded-full load-bar" style="width: ${loadFactor}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            html += `</div>`;
+            container.innerHTML = html;
+            grid.appendChild(container);
+        }
+
+        // Initialize application on DOM load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
 </body>
 </html>
