@@ -684,13 +684,26 @@
             // Anti-spam email assembly
             const user = 'mtrtimehk';
             const domain = 'gmail.com';
+            const emailAddress = `${user}@${domain}`;
             const subject = encodeURIComponent('MTR Time App Feedback');
             const body = encodeURIComponent(msg);
             
-            window.location.href = `mailto:${user}@${domain}?subject=${subject}&body=${body}`;
+            // Try to open the default email app
+            window.location.href = `mailto:${emailAddress}?subject=${subject}&body=${body}`;
             
-            closeFeedbackModal();
-            document.getElementById('fbMessage').value = '';
+            // Transform the form to show a fallback message instead of closing instantly
+            const form = document.getElementById('feedbackForm');
+            form.innerHTML = `
+                <div class="text-center space-y-4 py-6">
+                    <i class="ph-fill ph-check-circle text-5xl text-emerald-400"></i>
+                    <p class="text-slate-200 font-medium">Opening your email app...</p>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <p class="text-sm text-slate-400 mb-2">If nothing happened, your device doesn't have a default mail app set. Please email us directly at:</p>
+                        <p class="text-emerald-400 font-mono font-bold select-all">${emailAddress}</p>
+                    </div>
+                    <button type="button" onclick="closeFeedbackModal(); setTimeout(() => location.reload(), 300);" class="mt-4 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-lg transition border border-slate-700 w-full">Close</button>
+                </div>
+            `;
         }
 
         // Convert Traditional Chinese strings to Simplified Chinese
