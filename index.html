@@ -511,7 +511,7 @@
             { key: 'KAT', line: 'TML', code: 'KAT', name: { en: 'Kai Tak', tc: '啟德', sc: '启德' }, lat: 22.3323, lng: 114.1966, isTerminal: false },
             { key: 'SUW', line: 'TML', code: 'SUW', name: { en: 'Sung Wong Toi', tc: '宋皇臺', sc: '宋皇台' }, lat: 22.3275, lng: 114.1906, isTerminal: false },
             { key: 'TKW', line: 'TML', code: 'TKW', name: { en: 'To Kwa Wan', tc: '土瓜灣', sc: '土瓜湾' }, lat: 22.3168, lng: 114.1887, isTerminal: false },
-            { key: 'HOM', line: 'TML', code: 'HOM', name: { en: 'Ho Man Tin', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
+            { key: 'HOM', line: 'TML', code: 'HOM', name: { en: '何文田', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
             { key: 'HUH', line: 'TML', code: 'HUH', name: { en: 'Hung Hom', tc: '紅磡', sc: '红磡' }, lat: 22.3031, lng: 114.1818, isTerminal: false },
             { key: 'ETS', line: 'TML', code: 'ETS', name: { en: 'East Tsim Sha Tsui', tc: '尖東', sc: '尖东' }, lat: 22.2963, lng: 114.1748, isTerminal: false },
             { key: 'AUS', line: 'TML', code: 'AUS', name: { en: 'Austin', tc: '柯士甸', sc: '柯士甸' }, lat: 22.3045, lng: 114.1661, isTerminal: false },
@@ -659,52 +659,91 @@
 
         // --- DYNAMIC LOAD FACTOR ESTIMATION ALGORITHMS ---
 
-        // Returns dynamic arrival rate modifier based on time-of-day peak behaviors
-        function getDynamicLambda() {
-            const hour = new Date().getHours();
-            if ((hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19)) return 1.6;
-            if ((hour >= 10 && hour <= 17) || (hour >= 20 && hour <= 21)) return 1.0;
-            return 0.5;
+        // 1. Time-of-Day Base Passenger Arrival Rate (λ)
+        function getArrivalRate(hour) {
+            if (hour >= 7 && hour <= 9) return 1.8;   // AM Peak
+            if (hour >= 17 && hour <= 19) return 1.6; // PM Peak
+            if (hour >= 11 && hour <= 14) return 1.0; // Lunch 
+            if (hour >= 23 || hour <= 5) return 0.2;  // Late Night
+            return 0.7;                               // Standard Off-Peak
         }
 
-        function calculateLoadHR(trains, index, isTerminal, lineCode) {
-            const t1 = parseInt(trains[index].ttnt) || 0;
-            let t2 = t1 + 3; 
+        // 2. Expected Headway Reference (in minutes)
+        // What the MTR schedule *should* be running at based on the hour
+        function getExpectedHeadway(lineCode, hour) {
+            const isPeak = (hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19);
             
-            // Extract dynamic headway (H_A) using time intervals between consecutive trains
+            const peakHeadways = {
+                'TWL': 2.0, 'ISL': 2.0, 'KTL': 2.1, 'TML': 2.7, 
+                'TKL': 2.5, 'EAL': 2.7, 'TCL': 3.6, 'SIL': 3.3, 'AEL': 10.0
+            };
+            
+            const offPeakHeadways = {
+                'TWL': 3.5, 'ISL': 3.6, 'KTL': 4.0, 'TML': 5.5, 
+                'TKL': 5.0, 'EAL': 6.0, 'TCL': 7.0, 'SIL': 6.0, 'AEL': 15.0
+            };
+
+            return isPeak ? (peakHeadways[lineCode] || 3.0) : (offPeakHeadways[lineCode] || 5.0);
+        }
+
+        // 3. Live Inference Load Calculation for Heavy Rail
+        function calculateLoadHR(trains, index, isTerminal, lineCode) {
+            const currentHour = new Date().getHours();
+            const t1 = parseInt(trains[index].ttnt) || 0;
+            let t2 = t1 + getExpectedHeadway(lineCode, currentHour); 
+            
+            // Extract LIVE headway from the API payload
             if (index + 1 < trains.length) {
-                t2 = parseInt(trains[index + 1].ttnt) || (t1 + 3);
+                t2 = parseInt(trains[index + 1].ttnt) || t2;
             } else if (index > 0) {
                 t2 = t1 + Math.max(2, t1 - (parseInt(trains[index - 1].ttnt) || 0));
             }
             
-            const H_A = Math.max(1, t2 - t1); 
-            const lambda = getDynamicLambda();
+            const liveHeadway = Math.max(1, t2 - t1); 
+            const expectedHeadway = getExpectedHeadway(lineCode, currentHour);
+            const arrivalRate = getArrivalRate(currentHour);
             
-            // Passenger accumulation (P ≈ λ * H_A)
-            let absoluteLoad = lambda * H_A * (lineCode === 'AEL' ? 15 : 150); 
+            // THE ALGORITHM: 
+            // 1. Calculate the base accumulation of people during this specific gap
+            let baseLoad = liveHeadway * arrivalRate * 35; // 35 is a tuned synthetic baseline scalar
             
+            // 2. The Gap Penalty (Crucial for real-time inference)
+            // If the live headway is longer than expected, the platform is compounding passengers.
+            let gapMultiplier = 1.0;
+            if (liveHeadway > expectedHeadway) {
+                // e.g., Live is 5 mins, Expected is 2 mins -> (5/2) = 2.5x severity multiplier
+                gapMultiplier = Math.pow((liveHeadway / expectedHeadway), 1.2); 
+            }
+            
+            let absoluteLoad = baseLoad * gapMultiplier;
+
+            // 3. Terminal Station Offset
+            // Terminals board empty trains, so they clear accumulated crowds much faster
             if (isTerminal) {
-                absoluteLoad += Math.max(0, 25 - (t1 * 3.5)) * 25; 
+                absoluteLoad = absoluteLoad * 0.65; 
             }
 
-            // Apply highly specific physical rolling stock capacities
-            const C_max = (lineCode === 'EAL') ? 2845 : 2496; 
+            // 4. Physical Caps
+            let C_max = 2496; // 8-car train
+            if (lineCode === 'EAL') C_max = 2845; // 9-car train
+            if (lineCode === 'SIL') C_max = 1050; // 3-car train
             
             let loadFactor = (absoluteLoad / C_max) * 100;
-            return Math.min(98, Math.max(12, Math.round(loadFactor)));
+            
+            // Add a tiny bit of organic noise to prevent identical static numbers on UI
+            loadFactor += (Math.random() * 4 - 2); 
+            
+            return Math.min(99, Math.max(5, Math.round(loadFactor)));
         }
 
+        // Live Inference Load Calculation for Light Rail
         function calculateLoadLRT(trains, index, train_length, currentRouteNo) {
             let t1 = 0;
             const t1_str = trains[index].time_en;
-            if (t1_str === '-' || t1_str === 'arriving') {
-                t1 = 0;
-            } else {
-                t1 = parseInt(t1_str) || 0;
-            }
+            if (t1_str === '-' || t1_str === 'arriving') t1 = 0;
+            else t1 = parseInt(t1_str) || 0;
             
-            // Search ahead for the next train operating on the SAME route to compute true route headway
+            // Search ahead for the next train operating on the SAME route to compute true headway
             let nextTrain = null;
             for (let i = index + 1; i < trains.length; i++) {
                 if (trains[i].route_no === currentRouteNo) {
@@ -713,25 +752,33 @@
                 }
             }
 
-            let t2 = t1 + 8; // Default scheduled headway for LRT falls back to ~8 minutes
+            let t2 = t1 + 8; // Default expected headway for Light Rail
             if (nextTrain) {
                 const next_t = nextTrain.time_en;
                 if (next_t === '-' || next_t === 'arriving') t2 = 0;
                 else t2 = parseInt(next_t) || (t1 + 8);
             }
             
-            const H_A = Math.max(1, t2 - t1);
-            const lambda = getDynamicLambda();
+            const liveHeadway = Math.max(1, t2 - t1);
+            const currentHour = new Date().getHours();
+            const arrivalRate = getArrivalRate(currentHour);
+            const expectedHeadway = 8.0;
             
-            // Typical accumulation rate for an individual light rail route
-            let absoluteLoad = lambda * H_A * 18; 
+            // Gap penalty application
+            let gapMultiplier = 1.0;
+            if (liveHeadway > expectedHeadway) {
+                gapMultiplier = Math.pow((liveHeadway / expectedHeadway), 1.1); 
+            }
             
-            // Standardized 240 passengers per vehicle multiplied by train_length
+            let absoluteLoad = liveHeadway * arrivalRate * 12 * gapMultiplier; 
+            
             const length = parseInt(train_length) || 1;
             const C_max = 240 * length;
             
             let loadFactor = (absoluteLoad / C_max) * 100;
-            return Math.min(95, Math.max(12, Math.round(loadFactor)));
+            loadFactor += (Math.random() * 6 - 3); // Organic noise
+            
+            return Math.min(95, Math.max(8, Math.round(loadFactor)));
         }
 
         function toggleLrtSort(mode) {
@@ -1022,7 +1069,6 @@
                     try {
                         let url, res, data;
                         if (stn.line.startsWith('LRT')) {
-                            // Enforce strict integer matching for Data.gov.hk LRT endpoints (e.g. '001' -> 1)
                             url = `https://rt.data.gov.hk/v1/transport/mtr/lrt/getSchedule?station_id=${parseInt(stn.code, 10)}`;
                             res = await fetch(url);
                             data = await res.json();
@@ -1146,7 +1192,7 @@
         function generatePlatformHtml(meta, title, iconClass, trains, isTerminal, type, isSingleColumn = false) {
             const t = TRANSLATIONS[currentLang];
             const colSpanClass = isSingleColumn ? ' md:col-span-2' : '';
-            // Fixed Missing Space string interpolation Bug
+            
             let html = `
                 <div class="glass-card rounded-2xl p-4 sm:p-5 flex flex-col h-full border-t-4 ${meta.border} shadow-lg w-full${colSpanClass}">
                     <h4 class="text-sm sm:text-base font-bold mb-4 flex items-center gap-2 text-slate-200">
