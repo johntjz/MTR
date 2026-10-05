@@ -509,7 +509,7 @@
             { key: 'KAT', line: 'TML', code: 'KAT', name: { en: 'Kai Tak', tc: '啟德', sc: '启德' }, lat: 22.3323, lng: 114.1966, isTerminal: false },
             { key: 'SUW', line: 'TML', code: 'SUW', name: { en: 'Sung Wong Toi', tc: '宋皇臺', sc: '宋皇台' }, lat: 22.3275, lng: 114.1906, isTerminal: false },
             { key: 'TKW', line: 'TML', code: 'TKW', name: { en: 'To Kwa Wan', tc: '土瓜灣', sc: '土瓜湾' }, lat: 22.3168, lng: 114.1887, isTerminal: false },
-            { key: 'HOM', line: 'TML', code: 'HOM', name: { en: '何文田', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
+            { key: 'HOM', line: 'TML', code: 'HOM', name: { en: 'Ho Man Tin', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
             { key: 'HUH', line: 'TML', code: 'HUH', name: { en: 'Hung Hom', tc: '紅磡', sc: '红磡' }, lat: 22.3031, lng: 114.1818, isTerminal: false },
             { key: 'ETS', line: 'TML', code: 'ETS', name: { en: 'East Tsim Sha Tsui', tc: '尖東', sc: '尖东' }, lat: 22.2963, lng: 114.1748, isTerminal: false },
             { key: 'AUS', line: 'TML', code: 'AUS', name: { en: 'Austin', tc: '柯士甸', sc: '柯士甸' }, lat: 22.3045, lng: 114.1661, isTerminal: false },
@@ -1069,15 +1069,15 @@
                     try {
                         let url, res, data;
                         if (stn.line.startsWith('LRT')) {
-                            url = `/api/lrt?stop=${stn.code}`;
+                            url = `/api/lrt?station_id=${stn.code}`;
                             res = await fetch(url);
                             data = await res.json();
-                            return { type: 'LRT', lineCode: stn.line, stn, data, success: data && data.status === 1 };
+                            return { type: 'LRT', lineCode: stn.line, stn, data, success: data && String(data.status) === "1" };
                         } else {
-                            url = `/api/mtr?line=${stn.line}&station=${stn.code}`;
+                            url = `/api/mtr?line=${stn.line}&sta=${stn.code}`;
                             res = await fetch(url);
                             data = await res.json();
-                            return { type: 'HR', lineCode: stn.line, stn, data, success: data && (data.status === 1 || (data.data && Object.keys(data.data).length > 0)) };
+                            return { type: 'HR', lineCode: stn.line, stn, data, success: data && (String(data.status) === "1" || (data.data && Object.keys(data.data).length > 0)) };
                         }
                     } catch (err) {
                         return { type: stn.line.startsWith('LRT') ? 'LRT' : 'HR', lineCode: stn.line, stn, success: false, error: err };
