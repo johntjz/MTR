@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <meta name="google" content="notranslate">
-    <title>Pulse HK v1002 - Transit Estimator</title>
+    <title>Pulse - Transit Estimator</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Phosphor Icons -->
@@ -85,9 +84,8 @@
                 <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
                     <i class="ph-bold ph-train text-xl sm:text-2xl text-white"></i>
                 </div>
-                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-baseline gap-2">
-                    <span id="uiAppTitle" class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">Pulse HK</span>
-                    <span class="text-sm font-mono text-emerald-500">v1002</span>
+                <h1 id="uiAppTitle" class="text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
+                    Pulse
                 </h1>
             </div>
 
@@ -204,7 +202,7 @@
         // Translation dictionary
         const TRANSLATIONS = {
             en: {
-                appTitle: "Pulse HK",
+                appTitle: "Pulse",
                 metroNetwork: "Metro",
                 lightRail: "Light Rail",
                 browseByLine: "Browse by Line",
@@ -244,7 +242,7 @@
                 send: "Send"
             },
             tc: {
-                appTitle: "Pulse HK",
+                appTitle: "Pulse",
                 metroNetwork: "重鐵",
                 lightRail: "輕鐵",
                 browseByLine: "按路線選擇",
@@ -284,7 +282,7 @@
                 send: "發送"
             },
             sc: {
-                appTitle: "Pulse HK",
+                appTitle: "Pulse",
                 metroNetwork: "重铁",
                 lightRail: "轻铁",
                 browseByLine: "按路线选择",
@@ -327,47 +325,47 @@
 
         const LINE_META = {
             'AEL': { 
-                network: 'HR', code: 'AEL',
+                network: 'HR', code: 'AEL', baseHeadway: 12, demandMultiplier: 0.25,
                 name: { en: 'Airport Express', tc: '機場快綫', sc: '机场快线' }, 
                 color: 'bg-teal-500', border: 'border-t-teal-500', text: 'text-teal-400', badge: 'bg-teal-500/20 text-teal-300 border-teal-500/30'
             },
             'TCL': { 
-                network: 'HR', code: 'TCL',
+                network: 'HR', code: 'TCL', baseHeadway: 6, demandMultiplier: 0.8,
                 name: { en: 'Tung Chung Line', tc: '東涌綫', sc: '东涌线' }, 
                 color: 'bg-orange-500', border: 'border-t-orange-500', text: 'text-orange-400', badge: 'bg-orange-500/20 text-orange-300 border-orange-500/30'
             },
             'TML': { 
-                network: 'HR', code: 'TML',
+                network: 'HR', code: 'TML', baseHeadway: 3.5, demandMultiplier: 0.9,
                 name: { en: 'Tuen Ma Line', tc: '屯馬綫', sc: '屯马线' }, 
                 color: 'bg-amber-700', border: 'border-t-amber-700', text: 'text-amber-500', badge: 'bg-amber-700/20 text-amber-300 border-amber-700/30'
             },
             'TKL': { 
-                network: 'HR', code: 'TKL',
+                network: 'HR', code: 'TKL', baseHeadway: 3, demandMultiplier: 1.0,
                 name: { en: 'Tseung Kwan O Line', tc: '將軍澳綫', sc: '将军澳线' }, 
                 color: 'bg-purple-600', border: 'border-t-purple-600', text: 'text-purple-400', badge: 'bg-purple-600/20 text-purple-300 border-purple-600/30'
             },
             'EAL': { 
-                network: 'HR', code: 'EAL',
+                network: 'HR', code: 'EAL', baseHeadway: 3.5, demandMultiplier: 1.0,
                 name: { en: 'East Rail Line', tc: '東鐵綫', sc: '东铁线' }, 
                 color: 'bg-sky-500', border: 'border-t-sky-500', text: 'text-sky-400', badge: 'bg-sky-500/20 text-sky-300 border-sky-500/30'
             },
             'SIL': { 
-                network: 'HR', code: 'SIL',
+                network: 'HR', code: 'SIL', baseHeadway: 3.5, demandMultiplier: 0.7,
                 name: { en: 'South Island Line', tc: '南港島綫', sc: '南港岛线' }, 
                 color: 'bg-lime-500', border: 'border-t-lime-500', text: 'text-lime-400', badge: 'bg-lime-500/20 text-lime-300 border-lime-500/30'
             },
             'TWL': { 
-                network: 'HR', code: 'TWL',
+                network: 'HR', code: 'TWL', baseHeadway: 2.5, demandMultiplier: 1.1,
                 name: { en: 'Tsuen Wan Line', tc: '荃灣綫', sc: '荃湾线' }, 
                 color: 'bg-red-600', border: 'border-t-red-600', text: 'text-red-400', badge: 'bg-red-600/20 text-red-300 border-red-600/30'
             },
             'ISL': { 
-                network: 'HR', code: 'ISL',
+                network: 'HR', code: 'ISL', baseHeadway: 2.5, demandMultiplier: 1.0,
                 name: { en: 'Island Line', tc: '港島綫', sc: '港岛线' }, 
                 color: 'bg-blue-600', border: 'border-t-blue-600', text: 'text-blue-400', badge: 'bg-blue-600/20 text-blue-300 border-blue-600/30'
             },
             'KTL': { 
-                network: 'HR', code: 'KTL',
+                network: 'HR', code: 'KTL', baseHeadway: 2.5, demandMultiplier: 1.0,
                 name: { en: 'Kwun Tong Line', tc: '觀塘綫', sc: '观塘线' }, 
                 color: 'bg-emerald-600', border: 'border-t-emerald-600', text: 'text-emerald-400', badge: 'bg-emerald-600/20 text-emerald-300 border-emerald-600/30'
             },
@@ -453,9 +451,9 @@
             { key: 'WAC', line: 'ISL', code: 'WAC', name: { en: 'Wan Chai', tc: '灣仔', sc: '湾仔' }, lat: 22.2777, lng: 114.1729, isTerminal: false },
             { key: 'CAB', line: 'ISL', code: 'CAB', name: { en: 'Causeway Bay', tc: '銅鑼灣', sc: '铜锣湾' }, lat: 22.2804, lng: 114.1848, isTerminal: false },
             { key: 'TIN', line: 'ISL', code: 'TIN', name: { en: 'Tin Hau', tc: '天后', sc: '天后' }, lat: 22.2828, lng: 114.1916, isTerminal: false },
-            { key: 'FOH', line: 'ISL', code: 'FOH', name: { en: 'Fortress Hill', tc: '炮台山', sc: '炮台山' }, lat: 22.2882, lng: 114.1939, isTerminal: false },
+            { key: 'FOT_I', line: 'ISL', code: 'FOT', name: { en: 'Fortress Hill', tc: '炮台山', sc: '炮台山' }, lat: 22.2882, lng: 114.1939, isTerminal: false },
             { key: 'NOP', line: 'ISL', code: 'NOP', name: { en: 'North Point', tc: '北角', sc: '北角' }, lat: 22.2917, lng: 114.2007, isTerminal: false },
-            { key: 'QUB', line: 'ISL', code: 'QUB', name: { en: 'Quarry Bay', tc: '鰂魚涌', sc: '鰂鱼涌' }, lat: 22.2876, lng: 114.2114, isTerminal: false },
+            { key: 'QUO', line: 'ISL', code: 'QUO', name: { en: 'Quarry Bay', tc: '鰂魚涌', sc: '鰂鱼涌' }, lat: 22.2876, lng: 114.2114, isTerminal: false },
             { key: 'TAK', line: 'ISL', code: 'TAK', name: { en: 'Tai Koo', tc: '太古', sc: '太古' }, lat: 22.2851, lng: 114.2173, isTerminal: false },
             { key: 'SKW', line: 'ISL', code: 'SKW', name: { en: 'Sai Wan Ho', tc: '西灣河', sc: '西湾河' }, lat: 22.2823, lng: 114.2215, isTerminal: false },
             { key: 'SWH', line: 'ISL', code: 'SWH', name: { en: 'Shau Kei Wan', tc: '筲箕灣', sc: '筲箕湾' }, lat: 22.2794, lng: 114.2295, isTerminal: false },
@@ -464,7 +462,7 @@
 
             // Tseung Kwan O Line (TKL)
             { key: 'NOP', line: 'TKL', code: 'NOP', name: { en: 'North Point', tc: '北角', sc: '北角' }, lat: 22.2917, lng: 114.2007, isTerminal: true },
-            { key: 'QUB', line: 'TKL', code: 'QUB', name: { en: 'Quarry Bay', tc: '鰂魚涌', sc: '鰂鱼涌' }, lat: 22.2876, lng: 114.2114, isTerminal: false },
+            { key: 'QUO', line: 'TKL', code: 'QUO', name: { en: 'Quarry Bay', tc: '鰂魚涌', sc: '鰂鱼涌' }, lat: 22.2876, lng: 114.2114, isTerminal: false },
             { key: 'YAT', line: 'TKL', code: 'YAT', name: { en: 'Yau Tong', tc: '油塘', sc: '油塘' }, lat: 22.2974, lng: 114.2382, isTerminal: false },
             { key: 'TIK', line: 'TKL', code: 'TIK', name: { en: 'Tiu Keng Leng', tc: '調景嶺', sc: '调景岭' }, lat: 22.3047, lng: 114.2526, isTerminal: false },
             { key: 'TKO', line: 'TKL', code: 'TKO', name: { en: 'Tseung Kwan O', tc: '將軍澳', sc: '将军澳' }, lat: 22.3073, lng: 114.2604, isTerminal: false },
@@ -506,7 +504,7 @@
             { key: 'STW', line: 'TML', code: 'STW', name: { en: 'Sha Tin Wai', tc: '沙田圍', sc: '沙田围' }, lat: 22.3807, lng: 114.1945, isTerminal: false },
             { key: 'CKT', line: 'TML', code: 'CKT', name: { en: 'Che Kung Temple', tc: '車公廟', sc: '车公庙' }, lat: 22.3755, lng: 114.1866, isTerminal: false },
             { key: 'TAW', line: 'TML', code: 'TAW', name: { en: 'Tai Wai', tc: '大圍', sc: '大围' }, lat: 22.3732, lng: 114.1783, isTerminal: false },
-            { key: 'HIK', line: 'TML', code: 'HIK', name: { en: '顯徑', tc: '顯徑', sc: '显径' }, lat: 22.3637, lng: 114.1717, isTerminal: false },
+            { key: 'HIK', line: 'TML', code: 'HIK', name: { en: 'Hin Keng', tc: '顯徑', sc: '显径' }, lat: 22.3637, lng: 114.1717, isTerminal: false },
             { key: 'DIH', line: 'TML', code: 'DIH', name: { en: 'Diamond Hill', tc: '鑽石山', sc: '钻石山' }, lat: 22.3402, lng: 114.2017, isTerminal: false },
             { key: 'KAT', line: 'TML', code: 'KAT', name: { en: 'Kai Tak', tc: '啟德', sc: '启德' }, lat: 22.3323, lng: 114.1966, isTerminal: false },
             { key: 'SUW', line: 'TML', code: 'SUW', name: { en: 'Sung Wong Toi', tc: '宋皇臺', sc: '宋皇台' }, lat: 22.3275, lng: 114.1906, isTerminal: false },
@@ -602,7 +600,6 @@
         let timeRemaining = 15;
         const REFRESH_RATE = 15;
 
-        // Feedback Modal Logic
         function openFeedbackModal() {
             document.getElementById('feedbackModal').classList.remove('hidden');
         }
@@ -659,7 +656,6 @@
 
         // --- DYNAMIC LOAD FACTOR ESTIMATION ALGORITHMS ---
 
-        // Returns dynamic arrival rate modifier based on time-of-day peak behaviors
         function getDynamicLambda() {
             const hour = new Date().getHours();
             if ((hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19)) return 1.6;
@@ -669,69 +665,70 @@
 
         function calculateLoadHR(trains, index, isTerminal, lineCode) {
             const t1 = parseInt(trains[index].ttnt) || 0;
-            let t2 = t1 + 3; 
+            const meta = LINE_META[lineCode];
             
-            // Extract dynamic headway (H_A) using time intervals between consecutive trains
+            // Extract expected headway from metadata
+            const expectedHeadway = meta.baseHeadway || 4;
+            const demandMod = meta.demandMultiplier || 1.0;
+            
+            let t2 = t1 + expectedHeadway; 
             if (index + 1 < trains.length) {
-                t2 = parseInt(trains[index + 1].ttnt) || (t1 + 3);
-            } else if (index > 0) {
-                t2 = t1 + Math.max(2, t1 - (parseInt(trains[index - 1].ttnt) || 0));
+                t2 = parseInt(trains[index + 1].ttnt) || (t1 + expectedHeadway);
             }
             
-            const H_A = Math.max(1, t2 - t1); 
-            const lambda = getDynamicLambda();
+            // Calculate actual headway and ratio
+            let H_A = Math.max(1, t2 - t1); 
+            let headwayRatio = Math.min(2.5, H_A / expectedHeadway);
             
-            // Passenger accumulation (P ≈ λ * H_A)
-            let absoluteLoad = lambda * H_A * 150; 
+            // Time of Day baseline: Peak = 56%, Normal = 35%, Offpeak = 17.5%
+            const timeOfDayBase = getDynamicLambda() * 35; 
             
+            let loadFactor = timeOfDayBase * headwayRatio * demandMod;
+
             if (isTerminal) {
-                absoluteLoad += Math.max(0, 25 - (t1 * 3.5)) * 25; 
+                // If departing soon (t1 is small), it has accumulated passengers.
+                // If departing later (t1 is large), it is currently empty.
+                let terminalFillRatio = Math.max(0.1, 1.2 - (t1 / expectedHeadway));
+                loadFactor = loadFactor * terminalFillRatio;
             }
 
-            // Apply highly specific physical rolling stock capacities
-            const C_max = (lineCode === 'EAL') ? 2845 : 2496; 
-            
-            let loadFactor = (absoluteLoad / C_max) * 100;
-            return Math.min(98, Math.max(12, Math.round(loadFactor)));
+            return Math.min(98, Math.max(5, Math.round(loadFactor)));
         }
 
-        function calculateLoadLRT(trains, index, train_length, currentRouteNo) {
+        function calculateLoadLRT(trains, index, train_length, isTerminal) {
             let t1 = 0;
-            const t1_str = trains[index].time_en;
-            if (t1_str === '-' || t1_str === 'arriving') {
+            if (trains[index].time_en && trains[index].time_en.includes('min')) {
+                t1 = parseInt(trains[index].time_en) || 1;
+            } else if (trains[index].time_en === 'arriving') {
                 t1 = 0;
-            } else {
-                t1 = parseInt(t1_str) || 0;
             }
             
-            // Search ahead for the next train operating on the SAME route to compute true route headway
-            let nextTrain = null;
-            for (let i = index + 1; i < trains.length; i++) {
-                if (trains[i].route_no === currentRouteNo) {
-                    nextTrain = trains[i];
-                    break;
+            const expectedHeadway = 6;
+            let t2 = t1 + expectedHeadway;
+            if (index + 1 < trains.length) {
+                let next_t = trains[index + 1].time_en;
+                if (next_t && next_t.includes('min')) {
+                    t2 = parseInt(next_t) || (t1 + expectedHeadway);
                 }
-            }
-
-            let t2 = t1 + 8; // Default scheduled headway for LRT falls back to ~8 minutes
-            if (nextTrain) {
-                const next_t = nextTrain.time_en;
-                if (next_t === '-' || next_t === 'arriving') t2 = 0;
-                else t2 = parseInt(next_t) || (t1 + 8);
             }
             
             const H_A = Math.max(1, t2 - t1);
-            const lambda = getDynamicLambda();
+            let headwayRatio = Math.min(2.5, H_A / expectedHeadway);
             
-            // Typical accumulation rate for an individual light rail route
-            let absoluteLoad = lambda * H_A * 18; 
+            // Peak = 72%, Normal = 45%, Offpeak = 22.5%
+            const timeOfDayBase = getDynamicLambda() * 45; 
             
-            // Standardized 240 passengers per vehicle multiplied by train_length
-            const length = parseInt(train_length) || 1;
-            const C_max = 240 * length;
+            // Single cars get crowded faster, so inverse the capacity modifier
+            const capacityMod = train_length === 1 ? 1.3 : 0.8;
             
-            let loadFactor = (absoluteLoad / C_max) * 100;
-            return Math.min(95, Math.max(12, Math.round(loadFactor)));
+            let loadFactor = timeOfDayBase * headwayRatio * capacityMod;
+
+            if (isTerminal) {
+                let terminalFillRatio = Math.max(0.1, 1.2 - (t1 / expectedHeadway));
+                loadFactor = loadFactor * terminalFillRatio;
+            }
+
+            return Math.min(98, Math.max(5, Math.round(loadFactor)));
         }
 
         function toggleLrtSort(mode) {
@@ -812,7 +809,7 @@
         }
 
         function forceManualRefresh() {
-            // Keep the data rendered to avoid layout shifts, just sync in background
+            isInitialLoad = true; 
             fetchRealTimeData();
         }
 
@@ -827,6 +824,7 @@
             });
 
             const t = TRANSLATIONS[lang];
+            document.getElementById('uiAppTitle').textContent = t.appTitle;
             document.getElementById('lblStationSelect').textContent = t.selectStation;
             document.getElementById('uiGpsBtnText').textContent = t.nearestStation;
             document.getElementById('uiInterchangeLabel').textContent = t.connectedLines;
@@ -973,22 +971,6 @@
             }, 1000);
         }
 
-        function renderInterchangePills(activeStations) {
-            interchangePills.innerHTML = '';
-            if (activeStations.length <= 1) {
-                interchangeBadges.classList.add('hidden');
-                return;
-            }
-            interchangeBadges.classList.remove('hidden');
-            activeStations.forEach(stn => {
-                const meta = LINE_META[stn.line];
-                const pill = document.createElement('span');
-                pill.className = `px-2 py-1 rounded-md text-[10px] font-bold border ${meta.badge}`;
-                pill.textContent = meta.name[currentLang] || meta.name.en;
-                interchangePills.appendChild(pill);
-            });
-        }
-
         async function fetchRealTimeData() {
             const t = TRANSLATIONS[currentLang];
             
@@ -1000,7 +982,6 @@
             if (!targetStationObj) return;
 
             const activeStations = STATIONS.filter(s => s.key === targetStationObj.key || s.name.en === targetStationObj.name.en);
-            
             renderInterchangePills(activeStations);
 
             if (countdownTimer) clearInterval(countdownTimer);
@@ -1022,13 +1003,12 @@
                     try {
                         let url, res, data;
                         if (stn.line.startsWith('LRT')) {
-                            // Enforce strict integer matching for Data.gov.hk LRT endpoints (e.g. '001' -> 1)
-                            url = `https://rt.data.gov.hk/v1/transport/mtr/lrt/getSchedule?station_id=${parseInt(stn.code, 10)}`;
+                            url = `/api/lrt?stop=${stn.code}`;
                             res = await fetch(url);
                             data = await res.json();
                             return { type: 'LRT', lineCode: stn.line, stn, data, success: data && data.status === 1 };
                         } else {
-                            url = `https://rt.data.gov.hk/v1/transport/mtr/getSchedule.php?line=${stn.line}&sta=${stn.code}`;
+                            url = `/api/mtr?line=${stn.line}&station=${stn.code}`;
                             res = await fetch(url);
                             data = await res.json();
                             return { type: 'HR', lineCode: stn.line, stn, data, success: data && (data.status === 1 || (data.data && Object.keys(data.data).length > 0)) };
@@ -1145,8 +1125,7 @@
 
         function generatePlatformHtml(meta, title, iconClass, trains, isTerminal, type, isSingleColumn = false) {
             const t = TRANSLATIONS[currentLang];
-            const colSpanClass = isSingleColumn ? ' md:col-span-2' : '';
-            // Fixed Missing Space string interpolation Bug
+            const colSpanClass = isSingleColumn ? 'md:col-span-2' : '';
             let html = `
                 <div class="glass-card rounded-2xl p-4 sm:p-5 flex flex-col h-full border-t-4 ${meta.border} shadow-lg w-full${colSpanClass}">
                     <h4 class="text-sm sm:text-base font-bold mb-4 flex items-center gap-2 text-slate-200">
@@ -1163,9 +1142,8 @@
                     let destName, minText, platText, loadFactor, carBadgeHtml = '';
 
                     if (type === 'HR') {
-                        const destObj = STATIONS.find(s => s.code === train.dest);
-                        destName = destObj ? (destObj.name[currentLang] || destObj.name.en) : train.dest;
-                        
+                        const destObj = HEAVY_DESTINATIONS[train.dest];
+                        destName = destObj ? (destObj[currentLang] || destObj.en) : train.dest;
                         minText = train.ttnt === "0" ? t.arriving : `${train.ttnt}${t.min}`;
                         platText = `${t.platform}${train.plat}`;
                         loadFactor = calculateLoadHR(trains, index, isTerminal, meta.code);
@@ -1193,7 +1171,7 @@
                             : 'bg-slate-700/50 text-slate-400 border-slate-600/50';
                         carBadgeHtml = `<span class="px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-bold border ${badgeClasses} tracking-wide whitespace-nowrap">${carBadgeText}</span>`;
                         
-                        loadFactor = calculateLoadLRT(trains, index, train.train_length, train.route_no);
+                        loadFactor = calculateLoadLRT(trains, index, train.train_length, isTerminal);
                     }
                     
                     let barColor = 'bg-emerald-500';
@@ -1249,3 +1227,4 @@
     </script>
 </body>
 </html>
+
