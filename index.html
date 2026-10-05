@@ -682,7 +682,7 @@
             const lambda = getDynamicLambda();
             
             // Passenger accumulation (P ≈ λ * H_A)
-            let absoluteLoad = lambda * H_A * 150; 
+            let absoluteLoad = lambda * H_A * (lineCode === 'AEL' ? 15 : 150); 
             
             if (isTerminal) {
                 absoluteLoad += Math.max(0, 25 - (t1 * 3.5)) * 25; 
