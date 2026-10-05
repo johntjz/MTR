@@ -509,7 +509,7 @@
             { key: 'KAT', line: 'TML', code: 'KAT', name: { en: 'Kai Tak', tc: '啟德', sc: '启德' }, lat: 22.3323, lng: 114.1966, isTerminal: false },
             { key: 'SUW', line: 'TML', code: 'SUW', name: { en: 'Sung Wong Toi', tc: '宋皇臺', sc: '宋皇台' }, lat: 22.3275, lng: 114.1906, isTerminal: false },
             { key: 'TKW', line: 'TML', code: 'TKW', name: { en: 'To Kwa Wan', tc: '土瓜灣', sc: '土瓜湾' }, lat: 22.3168, lng: 114.1887, isTerminal: false },
-            { key: 'HOM', line: 'TML', code: 'HOM', name: { en: 'Ho Man Tin', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
+            { key: 'HOM', line: 'TML', code: 'HOM', name: { en: '何文田', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
             { key: 'HUH', line: 'TML', code: 'HUH', name: { en: 'Hung Hom', tc: '紅磡', sc: '红磡' }, lat: 22.3031, lng: 114.1818, isTerminal: false },
             { key: 'ETS', line: 'TML', code: 'ETS', name: { en: 'East Tsim Sha Tsui', tc: '尖東', sc: '尖东' }, lat: 22.2963, lng: 114.1748, isTerminal: false },
             { key: 'AUS', line: 'TML', code: 'AUS', name: { en: 'Austin', tc: '柯士甸', sc: '柯士甸' }, lat: 22.3045, lng: 114.1661, isTerminal: false },
@@ -584,6 +584,36 @@
             { key: 'LRT_590', line: 'LRT_YL', code: '590', name: { en: 'Tai Tong Road', tc: '大棠路', sc: '大棠路' }, lat: 22.4440, lng: 114.0308, isTerminal: false },
             { key: 'YUL_TML', line: 'LRT_YL', code: '600', name: { en: 'Yuen Long', tc: '元朗', sc: '元朗' }, lat: 22.4462, lng: 114.0347, isTerminal: true }
         ];
+
+        const HEAVY_DESTINATIONS = {
+            'HOK': { en: 'Hong Kong', tc: '香港', sc: '香港' },
+            'AWE': { en: 'AsiaWorld-Expo', tc: '博覽館', sc: '博览馆' },
+            'TUC': { en: 'Tung Chung', tc: '東涌', sc: '东涌' },
+            'CEN': { en: 'Central', tc: '中環', sc: '中环' },
+            'TSW': { en: 'Tsuen Wan', tc: '荃灣', sc: '荃湾' },
+            'WHA': { en: 'Whampoa', tc: '黃埔', sc: '黄埔' },
+            'TIK': { en: 'Tiu Keng Leng', tc: '調景嶺', sc: '调景岭' },
+            'KET': { en: 'Kennedy Town', tc: '堅尼地城', sc: '坚尼地城' },
+            'CHW': { en: 'Chai Wan', tc: '柴灣', sc: '柴湾' },
+            'NOP': { en: 'North Point', tc: '北角', sc: '北角' },
+            'POA': { en: 'Po Lam', tc: '寶琳', sc: '宝琳' },
+            'LHP': { en: 'LOHAS Park', tc: '康城', sc: '康城' },
+            'ADM': { en: 'Admiralty', tc: '金鐘', sc: '金钟' },
+            'LOW': { en: 'Lo Wu', tc: '羅湖', sc: '罗湖' },
+            'LMC': { en: 'Lok Ma Chau', tc: '落馬洲', sc: '落马洲' },
+            'SOH': { en: 'South Horizons', tc: '海怡半島', sc: '海怡半岛' },
+            'WKS': { en: 'Wu Kai Sha', tc: '烏溪沙', sc: '乌溪沙' },
+            'TUM': { en: 'Tuen Mun', tc: '屯門', sc: '屯门' },
+            'HUH': { en: 'Hung Hom', tc: '紅磡', sc: '红磡' },
+            'TAP': { en: 'Tai Po Market', tc: '大埔墟', sc: '大埔墟' },
+            'FOT': { en: 'Fo Tan', tc: '火炭', sc: '火炭' },
+            'SHS': { en: 'Sheung Shui', tc: '上水', sc: '上水' },
+            'MKK': { en: 'Mong Kok East', tc: '旺角東', sc: '旺角东' },
+            'KWT': { en: 'Kwun Tong', tc: '觀塘', sc: '观塘' },
+            'TSY': { en: 'Tsing Yi', tc: '青衣', sc: '青衣' },
+            'CHH': { en: 'Choi Hung', tc: '彩虹', sc: '彩虹' },
+            'KOB': { en: 'Kowloon Bay', tc: '九龍灣', sc: '九龙湾' }
+        };
 
         const lineSelect = document.getElementById('lineSelect');
         const stationSelect = document.getElementById('stationSelect');
@@ -971,6 +1001,41 @@
             }, 1000);
         }
 
+        function renderInterchangePills(activeStations) {
+            interchangePills.innerHTML = '';
+            if (activeStations.length > 1) {
+                interchangeBadges.classList.remove('hidden');
+                interchangeBadges.classList.add('flex');
+                
+                activeStations.forEach(stn => {
+                    const meta = LINE_META[stn.line];
+                    const pill = document.createElement('span');
+                    pill.className = `px-2 py-1 rounded-md text-[10px] font-bold border ${meta.badge} cursor-pointer hover:opacity-80 transition`;
+                    pill.textContent = meta.name[currentLang] || meta.name.en;
+                    
+                    pill.onclick = () => {
+                        if (currentNetwork !== meta.network) {
+                            switchNetwork(meta.network);
+                        }
+                        lineSelect.value = stn.line;
+                        savedState[currentNetwork].line = stn.line;
+                        populateStationDropdown(stn.line);
+                        
+                        stationSelect.value = stn.key;
+                        savedState[currentNetwork].station = stn.key;
+                        
+                        isInitialLoad = true;
+                        fetchRealTimeData();
+                    };
+                    
+                    interchangePills.appendChild(pill);
+                });
+            } else {
+                interchangeBadges.classList.add('hidden');
+                interchangeBadges.classList.remove('flex');
+            }
+        }
+
         async function fetchRealTimeData() {
             const t = TRANSLATIONS[currentLang];
             
@@ -982,6 +1047,7 @@
             if (!targetStationObj) return;
 
             const activeStations = STATIONS.filter(s => s.key === targetStationObj.key || s.name.en === targetStationObj.name.en);
+            
             renderInterchangePills(activeStations);
 
             if (countdownTimer) clearInterval(countdownTimer);
@@ -1227,4 +1293,3 @@
     </script>
 </body>
 </html>
-
