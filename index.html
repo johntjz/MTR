@@ -428,7 +428,7 @@
             { key: 'WHA', line: 'KTL', code: 'WHA', name: { en: 'Whampoa', tc: '黃埔', sc: '黄埔' }, lat: 22.3033, lng: 114.1897, isTerminal: true },
             { key: 'HOM', line: 'KTL', code: 'HOM', name: { en: 'Ho Man Tin', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
             { key: 'YMT', line: 'KTL', code: 'YMT', name: { en: 'Yau Ma Tei', tc: '油麻地', sc: '油麻地' }, lat: 22.3134, lng: 114.1706, isTerminal: false },
-            { key: 'MOK', line: 'KTL', code: 'MOK', name: { en: 'Mong Kok', tc: '旺角', sc: '旺角' }, lat: 22.3201, lng: 114.1697, isTerminal: false },
+            { key: 'MOK', line: 'KTL', code: 'MOK', name: { en: '旺角', tc: '旺角', sc: '旺角' }, lat: 22.3201, lng: 114.1697, isTerminal: false },
             { key: 'PRE', line: 'KTL', code: 'PRE', name: { en: 'Prince Edward', tc: '太子', sc: '太子' }, lat: 22.3245, lng: 114.1681, isTerminal: false },
             { key: 'SKM', line: 'KTL', code: 'SKM', name: { en: 'Shek Kip Mei', tc: '石硤尾', sc: '石硖尾' }, lat: 22.3323, lng: 114.1686, isTerminal: false },
             { key: 'KOT', line: 'KTL', code: 'KOT', name: { en: 'Kowloon Tong', tc: '九龍塘', sc: '九龙塘' }, lat: 22.3371, lng: 114.1758, isTerminal: false },
@@ -659,17 +659,7 @@
 
         // --- DYNAMIC LOAD FACTOR ESTIMATION ALGORITHMS ---
 
-        // 1. Time-of-Day Base Passenger Arrival Rate (λ)
-        function getArrivalRate(hour) {
-            if (hour >= 7 && hour <= 9) return 1.8;   // AM Peak
-            if (hour >= 17 && hour <= 19) return 1.6; // PM Peak
-            if (hour >= 11 && hour <= 14) return 1.0; // Lunch 
-            if (hour >= 23 || hour <= 5) return 0.2;  // Late Night
-            return 0.7;                               // Standard Off-Peak
-        }
-
-        // 2. Expected Headway Reference (in minutes)
-        // What the MTR schedule *should* be running at based on the hour
+        // 1. Expected Headway Reference (in minutes)
         function getExpectedHeadway(lineCode, hour) {
             const isPeak = (hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19);
             
@@ -686,13 +676,49 @@
             return isPeak ? (peakHeadways[lineCode] || 3.0) : (offPeakHeadways[lineCode] || 5.0);
         }
 
+        // 2. Baseline Load Factor Mapping (Heavy Rail)
+        function getBaselineLoadHR(lineCode, destCode, hour) {
+            const isAM = hour >= 7 && hour < 10;
+            const isPM = hour >= 17 && hour < 20;
+            const isLunch = hour >= 12 && hour < 14;
+            
+            if (!isAM && !isPM && !isLunch) return 30; // Off-peak default
+            if (isLunch) return 50;
+
+            // AM & PM Peaks Directional Assessment
+            let isHeavyDirection = false;
+            
+            if (isAM) {
+                const amHeavyDests = ['ADM', 'CEN', 'HOK', 'HUH', 'WHA', 'NOP'];
+                if (amHeavyDests.includes(destCode)) isHeavyDirection = true;
+                if (lineCode === 'ISL') isHeavyDirection = true;
+            } else if (isPM) {
+                const pmHeavyDests = ['TSW', 'TUC', 'POA', 'LHP', 'LOW', 'LMC', 'TUM', 'WKS', 'TIK', 'SOH'];
+                if (pmHeavyDests.includes(destCode)) isHeavyDirection = true;
+                if (lineCode === 'ISL') isHeavyDirection = true;
+            }
+
+            if (isHeavyDirection) {
+                return (lineCode === 'AEL') ? 50 : 85; 
+            } else {
+                return (lineCode === 'AEL') ? 30 : 55; // Counter-peak
+            }
+        }
+
         // 3. Live Inference Load Calculation for Heavy Rail
-        function calculateLoadHR(trains, index, isTerminal, lineCode) {
+        function calculateLoadHR(trains, index, isTerminal, lineCode, destCode) {
             const currentHour = new Date().getHours();
+            let baseLoad = getBaselineLoadHR(lineCode, destCode, currentHour);
+            
+            // Terminal Station Offset
+            if (isTerminal) {
+                baseLoad = baseLoad * 0.65; // Terminals clear accumulated crowds
+            }
+            
+            // Extract LIVE headway from the API payload
             const t1 = parseInt(trains[index].ttnt) || 0;
             let t2 = t1 + getExpectedHeadway(lineCode, currentHour); 
             
-            // Extract LIVE headway from the API payload
             if (index + 1 < trains.length) {
                 t2 = parseInt(trains[index + 1].ttnt) || t2;
             } else if (index > 0) {
@@ -701,49 +727,46 @@
             
             const liveHeadway = Math.max(1, t2 - t1); 
             const expectedHeadway = getExpectedHeadway(lineCode, currentHour);
-            const arrivalRate = getArrivalRate(currentHour);
             
-            // THE ALGORITHM: 
-            // 1. Calculate the base accumulation of people during this specific gap
-            let baseLoad = liveHeadway * arrivalRate * 35; // 35 is a tuned synthetic baseline scalar
-            
-            // 2. The Gap Penalty (Crucial for real-time inference)
-            // If the live headway is longer than expected, the platform is compounding passengers.
+            // The Gap Penalty
             let gapMultiplier = 1.0;
             if (liveHeadway > expectedHeadway) {
-                // e.g., Live is 5 mins, Expected is 2 mins -> (5/2) = 2.5x severity multiplier
                 gapMultiplier = Math.pow((liveHeadway / expectedHeadway), 1.2); 
+            } else if (liveHeadway < expectedHeadway && liveHeadway > 0) {
+                gapMultiplier = Math.max(0.4, liveHeadway / expectedHeadway); // Bunched up train
             }
             
-            let absoluteLoad = baseLoad * gapMultiplier;
-
-            // 3. Terminal Station Offset
-            // Terminals board empty trains, so they clear accumulated crowds much faster
-            if (isTerminal) {
-                absoluteLoad = absoluteLoad * 0.65; 
-            }
-
-            // 4. Physical Caps
-            let C_max = 2496; // 8-car train
-            if (lineCode === 'EAL') C_max = 2845; // 9-car train
-            if (lineCode === 'SIL') C_max = 1050; // 3-car train
-            
-            let loadFactor = (absoluteLoad / C_max) * 100;
-            
-            // Add a tiny bit of organic noise to prevent identical static numbers on UI
-            loadFactor += (Math.random() * 4 - 2); 
+            let loadFactor = baseLoad * gapMultiplier;
+            loadFactor += (Math.random() * 6 - 3); // Organic noise
             
             return Math.min(99, Math.max(5, Math.round(loadFactor)));
         }
 
-        // Live Inference Load Calculation for Light Rail
+        // 4. Baseline Load Factor Mapping (Light Rail)
+        function getBaselineLoadLRT(hour) {
+            const isPeak = (hour >= 7 && hour < 10) || (hour >= 17 && hour < 20);
+            const isLunch = hour >= 12 && hour < 14;
+            if (isPeak) return 75;
+            if (isLunch) return 50;
+            return 30;
+        }
+
+        // 5. Live Inference Load Calculation for Light Rail
         function calculateLoadLRT(trains, index, train_length, currentRouteNo) {
+            const currentHour = new Date().getHours();
+            let baseLoad = getBaselineLoadLRT(currentHour);
+            
+            const length = parseInt(train_length) || 1;
+            if (length === 2) {
+                baseLoad = baseLoad * 0.8; // 2-car train handles crowds better
+            }
+
             let t1 = 0;
             const t1_str = trains[index].time_en;
             if (t1_str === '-' || t1_str === 'arriving') t1 = 0;
             else t1 = parseInt(t1_str) || 0;
             
-            // Search ahead for the next train operating on the SAME route to compute true headway
+            // Search ahead for the next train operating on the SAME route
             let nextTrain = null;
             for (let i = index + 1; i < trains.length; i++) {
                 if (trains[i].route_no === currentRouteNo) {
@@ -760,25 +783,20 @@
             }
             
             const liveHeadway = Math.max(1, t2 - t1);
-            const currentHour = new Date().getHours();
-            const arrivalRate = getArrivalRate(currentHour);
             const expectedHeadway = 8.0;
             
             // Gap penalty application
             let gapMultiplier = 1.0;
             if (liveHeadway > expectedHeadway) {
                 gapMultiplier = Math.pow((liveHeadway / expectedHeadway), 1.1); 
+            } else if (liveHeadway < expectedHeadway && liveHeadway > 0) {
+                gapMultiplier = Math.max(0.4, liveHeadway / expectedHeadway);
             }
             
-            let absoluteLoad = liveHeadway * arrivalRate * 12 * gapMultiplier; 
-            
-            const length = parseInt(train_length) || 1;
-            const C_max = 240 * length;
-            
-            let loadFactor = (absoluteLoad / C_max) * 100;
+            let loadFactor = baseLoad * gapMultiplier;
             loadFactor += (Math.random() * 6 - 3); // Organic noise
             
-            return Math.min(95, Math.max(8, Math.round(loadFactor)));
+            return Math.min(95, Math.max(5, Math.round(loadFactor)));
         }
 
         function toggleLrtSort(mode) {
@@ -1214,7 +1232,7 @@
                         
                         minText = train.ttnt === "0" ? t.arriving : `${train.ttnt}${t.min}`;
                         platText = `${t.platform}${train.plat}`;
-                        loadFactor = calculateLoadHR(trains, index, isTerminal, meta.code);
+                        loadFactor = calculateLoadHR(trains, index, isTerminal, meta.code, train.dest);
                     } else {
                         let rawDestName = train.dest_en;
                         if (currentLang === 'tc') rawDestName = train.dest_ch || train.dest_en;
