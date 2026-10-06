@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<!-- Website last updated on: October 6, 2026, 9:07 PM HKT -->
+<!-- Website last updated on: October 6, 2026, 9:17 PM HKT -->
 <html lang="en" class="dark overflow-x-hidden" translate="no">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <meta name="google" content="notranslate">
-    <title>Pulse HK - Transit Estimator</title>
+    <title>Pulse Rail HK - Transit Estimator</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Phosphor Icons -->
@@ -88,9 +88,9 @@
                 </div>
                 <div class="flex flex-col">
                     <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight flex items-baseline gap-2">
-                        <span id="uiAppTitle" class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">Pulse HK</span>
+                        <span id="uiAppTitle" class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">Pulse Rail HK</span>
                     </h1>
-                    <span class="text-[9px] sm:text-[10px] font-mono text-emerald-500/80 tracking-wider mt-0.5">UPDATED: OCT 6, 9:07 PM</span>
+                    <span class="text-[9px] sm:text-[10px] font-mono text-emerald-500/80 tracking-wider mt-0.5">UPDATED: OCT 6, 9:17 PM</span>
                 </div>
             </div>
 
@@ -105,7 +105,7 @@
         <!-- Controls Section -->
         <section class="glass-panel rounded-xl p-3 sm:p-4 shadow-lg flex flex-col gap-3 sm:gap-4 w-full">
             
-            <!-- Status Indicator Bar (MOVED TO TOP) -->
+            <!-- Status Indicator Bar -->
             <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-900/80 border border-slate-800 shadow-inner">
                 <div id="statusBox" class="text-xs sm:text-sm flex items-center gap-2 min-w-0">
                     <div class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse shrink-0" id="statusDot"></div>
@@ -165,7 +165,7 @@
                 <i class="ph-bold ph-chat-circle-text text-emerald-400"></i>
                 Send Feedback
             </button>
-            <p class="text-slate-600 font-mono tracking-wide">Pulse &bull; Last Updated: Oct 6, 2026, 9:07 PM HKT</p>
+            <p class="text-slate-600 font-mono tracking-wide">Pulse Rail &bull; Last Updated: Oct 6, 2026, 9:17 PM HKT</p>
         </footer>
     </div>
 
@@ -206,7 +206,7 @@
         // Translation dictionary
         const TRANSLATIONS = {
             en: {
-                appTitle: "Pulse HK",
+                appTitle: "Pulse Rail HK",
                 metroNetwork: "Metro",
                 lightRail: "Light Rail",
                 browseByLine: "Browse by Line",
@@ -246,7 +246,7 @@
                 send: "Send"
             },
             tc: {
-                appTitle: "Pulse HK",
+                appTitle: "Pulse Rail HK",
                 metroNetwork: "港鐵",
                 lightRail: "輕鐵",
                 browseByLine: "按路線選擇",
@@ -286,7 +286,7 @@
                 send: "發送"
             },
             sc: {
-                appTitle: "Pulse HK",
+                appTitle: "Pulse Rail HK",
                 metroNetwork: "重铁",
                 lightRail: "轻铁",
                 browseByLine: "按路线选择",
@@ -1088,9 +1088,15 @@
             interchangeBadges.classList.remove('hidden');
             activeStations.forEach(stn => {
                 const meta = LINE_META[stn.line];
-                const pill = document.createElement('span');
-                pill.className = `px-2 py-1 rounded-md text-[10px] font-bold border ${meta.badge}`;
+                const pill = document.createElement('button');
+                pill.className = `px-2 py-1 rounded-md text-[10px] font-bold border ${meta.badge} hover:opacity-80 active:scale-95 transition cursor-pointer`;
                 pill.textContent = meta.name[currentLang] || meta.name.en;
+                pill.onclick = () => {
+                    const targetEl = document.getElementById(`line-block-${stn.line}`);
+                    if (targetEl) {
+                        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                };
                 interchangePills.appendChild(pill);
             });
         }
@@ -1152,7 +1158,7 @@
                     const lineName = meta.name[currentLang] || meta.name.en;
 
                     newHtml += `
-                        <div class="space-y-4 w-full">
+                        <div id="line-block-${result.lineCode}" class="space-y-4 w-full scroll-mt-4 sm:scroll-mt-6">
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div class="flex items-center gap-3">
                                     <span class="w-2.5 h-7 rounded-full ${meta.color}"></span>
