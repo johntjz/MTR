@@ -368,7 +368,7 @@
             },
             'KTL': { 
                 network: 'HR', code: 'KTL',
-                name: { en: 'Kwun Tong Line', tc: '觀塘綫', sc: '观塘线' }, 
+                name: { en: '觀塘綫', tc: '觀塘綫', sc: '观塘线' }, 
                 color: 'bg-emerald-600', border: 'border-t-emerald-600', text: 'text-emerald-400', badge: 'bg-emerald-600/20 text-emerald-300 border-emerald-600/30'
             },
             'LRT_TM': { 
@@ -428,7 +428,7 @@
             { key: 'WHA', line: 'KTL', code: 'WHA', name: { en: 'Whampoa', tc: '黃埔', sc: '黄埔' }, lat: 22.3033, lng: 114.1897, isTerminal: true },
             { key: 'HOM', line: 'KTL', code: 'HOM', name: { en: 'Ho Man Tin', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
             { key: 'YMT', line: 'KTL', code: 'YMT', name: { en: 'Yau Ma Tei', tc: '油麻地', sc: '油麻地' }, lat: 22.3134, lng: 114.1706, isTerminal: false },
-            { key: 'MOK', line: 'KTL', code: 'MOK', name: { en: '旺角', tc: '旺角', sc: '旺角' }, lat: 22.3201, lng: 114.1697, isTerminal: false },
+            { key: 'MOK', line: 'KTL', code: 'MOK', name: { en: 'Mong Kok', tc: '旺角', sc: '旺角' }, lat: 22.3201, lng: 114.1697, isTerminal: false },
             { key: 'PRE', line: 'KTL', code: 'PRE', name: { en: 'Prince Edward', tc: '太子', sc: '太子' }, lat: 22.3245, lng: 114.1681, isTerminal: false },
             { key: 'SKM', line: 'KTL', code: 'SKM', name: { en: 'Shek Kip Mei', tc: '石硤尾', sc: '石硖尾' }, lat: 22.3323, lng: 114.1686, isTerminal: false },
             { key: 'KOT', line: 'KTL', code: 'KOT', name: { en: 'Kowloon Tong', tc: '九龍塘', sc: '九龙塘' }, lat: 22.3371, lng: 114.1758, isTerminal: false },
@@ -676,46 +676,85 @@
             return isPeak ? (peakHeadways[lineCode] || 3.0) : (offPeakHeadways[lineCode] || 5.0);
         }
 
-        // 2. Baseline Load Factor Mapping (Heavy Rail)
-        function getBaselineLoadHR(lineCode, destCode, hour) {
+        // 2. The "Pipe Compression" Density Core Map
+        // Defines the start and end array indices of the heaviest urban zones for each line
+        const LINE_ZONES = {
+            'TML': { core: [10, 19] }, // Kai Tak (10) to Tsuen Wan West (19)
+            'TWL': { core: [0, 5] },   // Central (0) to Mong Kok (5)
+            'EAL': { core: [0, 4] },   // Admiralty (0) to Kowloon Tong (4)
+            'TCL': { core: [0, 2] },   // Hong Kong (0) to Olympic (2)
+            'ISL': { core: [3, 8] },   // Sheung Wan (3) to Tin Hau (8)
+            'KTL': { core: [0, 4] },   // Whampoa (0) to Prince Edward (4)
+            'TKL': { core: [0, 2] },   // North Point (0) to Yau Tong (2)
+            'SIL': { core: [0, 0] },   // Admiralty (0)
+            'AEL': { core: [0, 1] }    // Hong Kong (0) to Kowloon (1)
+        };
+
+        function getDynamicBaseline(lineCode, currentStnKey, destCode, hour) {
+            const zone = LINE_ZONES[lineCode];
+            if (!zone) return 40; // Fallback
+            
+            // Get array indices to calculate distance and direction
+            const lineStations = STATIONS.filter(s => s.line === lineCode);
+            const currentIdx = lineStations.findIndex(s => s.key === currentStnKey);
+            let destIdx = lineStations.findIndex(s => s.code === destCode);
+            
+            if (destIdx === -1 || currentIdx === -1) return 40;
+
+            const coreStart = zone.core[0];
+            const coreEnd = zone.core[1];
+            
+            const inCore = currentIdx >= coreStart && currentIdx <= coreEnd;
+            const dir = destIdx > currentIdx ? 1 : -1; // 1 = increasing index, -1 = decreasing
+            
+            // Assess movement relative to the core
+            let towardsCore = (currentIdx < coreStart && dir === 1) || (currentIdx > coreEnd && dir === -1);
+            let awayFromCore = (currentIdx < coreStart && dir === -1) || (currentIdx > coreEnd && dir === 1);
+            
+            // Calculate distance (stops) from the nearest core edge for mathematical tapering
+            let distFromCore = 0;
+            if (!inCore) {
+                distFromCore = Math.min(Math.abs(currentIdx - coreStart), Math.abs(currentIdx - coreEnd));
+            }
+
             const isAM = hour >= 7 && hour < 10;
             const isPM = hour >= 17 && hour < 20;
-            const isLunch = hour >= 12 && hour < 14;
             
-            if (!isAM && !isPM && !isLunch) return 30; // Off-peak default
-            if (isLunch) return 50;
-
-            // AM & PM Peaks Directional Assessment
-            let isHeavyDirection = false;
+            let baseLoad = 40; 
             
+            // The Station-by-Station Flow Logic
             if (isAM) {
-                const amHeavyDests = ['ADM', 'CEN', 'HOK', 'HUH', 'WHA', 'NOP'];
-                if (amHeavyDests.includes(destCode)) isHeavyDirection = true;
-                if (lineCode === 'ISL') isHeavyDirection = true;
+                if (towardsCore) baseLoad = 80 - (distFromCore * 2.5); // Crowd builds as it nears CBD
+                else if (inCore) baseLoad = 85; 
+                else if (awayFromCore) baseLoad = 35; // Empty counter-commute
             } else if (isPM) {
-                const pmHeavyDests = ['TSW', 'TUC', 'POA', 'LHP', 'LOW', 'LMC', 'TUM', 'WKS', 'TIK', 'SOH'];
-                if (pmHeavyDests.includes(destCode)) isHeavyDirection = true;
-                if (lineCode === 'ISL') isHeavyDirection = true;
-            }
-
-            if (isHeavyDirection) {
-                return (lineCode === 'AEL') ? 50 : 85; 
+                if (awayFromCore) baseLoad = 80 - (distFromCore * 4.5); // Drops rapidly as it enters suburbs
+                else if (inCore) baseLoad = 75; // Packed in the CBD
+                else if (towardsCore) baseLoad = 35; // Empty counter-commute
             } else {
-                return (lineCode === 'AEL') ? 30 : 55; // Counter-peak
+                // Off-Peak
+                if (inCore) baseLoad = 55;
+                else baseLoad = Math.max(20, 50 - (distFromCore * 2));
             }
+            
+            return Math.max(15, Math.min(95, baseLoad)); // Clamp limits
         }
 
         // 3. Live Inference Load Calculation for Heavy Rail
         function calculateLoadHR(trains, index, isTerminal, lineCode, destCode) {
             const currentHour = new Date().getHours();
-            let baseLoad = getBaselineLoadHR(lineCode, destCode, currentHour);
             
-            // Terminal Station Offset
+            // Pull the current station key from the global saved state
+            const currentStnKey = savedState['HR'].station;
+            
+            // 1. Get the positional baseline
+            let baseLoad = getDynamicBaseline(lineCode, currentStnKey, destCode, currentHour);
+            
             if (isTerminal) {
                 baseLoad = baseLoad * 0.65; // Terminals clear accumulated crowds
             }
             
-            // Extract LIVE headway from the API payload
+            // 2. Extract LIVE headway from the API payload
             const t1 = parseInt(trains[index].ttnt) || 0;
             let t2 = t1 + getExpectedHeadway(lineCode, currentHour); 
             
@@ -728,12 +767,12 @@
             const liveHeadway = Math.max(1, t2 - t1); 
             const expectedHeadway = getExpectedHeadway(lineCode, currentHour);
             
-            // The Gap Penalty
+            // 3. The Gap Penalty
             let gapMultiplier = 1.0;
             if (liveHeadway > expectedHeadway) {
                 gapMultiplier = Math.pow((liveHeadway / expectedHeadway), 1.2); 
             } else if (liveHeadway < expectedHeadway && liveHeadway > 0) {
-                gapMultiplier = Math.max(0.4, liveHeadway / expectedHeadway); // Bunched up train
+                gapMultiplier = Math.max(0.4, liveHeadway / expectedHeadway); 
             }
             
             let loadFactor = baseLoad * gapMultiplier;
