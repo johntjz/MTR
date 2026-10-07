@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<!-- Website last updated on: October 6, 2026, 9:17 PM HKT -->
+<!-- Website last updated on: October 7, 2026, 8:40 AM HKT -->
 <html lang="en" class="dark overflow-x-hidden" translate="no">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <meta name="google" content="notranslate">
-    <title>Pulse Rail HK - Transit Estimator</title>
+    <title>Pulse HK - Transit Estimator</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Phosphor Icons -->
@@ -51,10 +51,6 @@
             background: #475569;
         }
 
-        .load-bar {
-            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s ease;
-        }
-
         .glass-panel {
             background: rgba(17, 24, 39, 0.75);
             backdrop-filter: blur(12px);
@@ -88,9 +84,9 @@
                 </div>
                 <div class="flex flex-col">
                     <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight flex items-baseline gap-2">
-                        <span id="uiAppTitle" class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">Pulse Rail HK</span>
+                        <span id="uiAppTitle" class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">Pulse HK</span>
                     </h1>
-                    <span class="text-[9px] sm:text-[10px] font-mono text-emerald-500/80 tracking-wider mt-0.5">UPDATED: OCT 6, 9:17 PM</span>
+                    <span class="text-[9px] sm:text-[10px] font-mono text-emerald-500/80 tracking-wider mt-0.5">UPDATED: OCT 7, 8:40 AM</span>
                 </div>
             </div>
 
@@ -165,7 +161,7 @@
                 <i class="ph-bold ph-chat-circle-text text-emerald-400"></i>
                 Send Feedback
             </button>
-            <p class="text-slate-600 font-mono tracking-wide">Pulse Rail &bull; Last Updated: Oct 6, 2026, 9:17 PM HKT</p>
+            <p class="text-slate-600 font-mono tracking-wide">Pulse &bull; Last Updated: Oct 7, 2026, 8:40 AM HKT</p>
         </footer>
     </div>
 
@@ -206,7 +202,7 @@
         // Translation dictionary
         const TRANSLATIONS = {
             en: {
-                appTitle: "Pulse Rail HK",
+                appTitle: "Pulse HK",
                 metroNetwork: "Metro",
                 lightRail: "Light Rail",
                 browseByLine: "Browse by Line",
@@ -231,9 +227,15 @@
                 oneCar: "1-Car",
                 twoCar: "2-Car",
                 to: "To",
-                loadComfortable: "Comfortable",
-                loadStanding: "Standing Room",
-                loadCrowded: "Crowded",
+                
+                // Anxiety-Addressing Behavioral States
+                loadVeryEmpty: "Seats: Both sides free",
+                loadEmpty: "Seats: One side taken",
+                loadModerate: "Seats: Both sides taken",
+                loadStandingSpace: "Standing: With space",
+                loadStandingJammed: "Jammed: Face-to-face",
+                loadFullSkip: "Full: Wait for next train",
+                
                 dirUp: "Departures (Direction 1)",
                 dirDown: "Departures (Direction 2)",
                 sortByPlatform: "Sort by Platform",
@@ -246,7 +248,7 @@
                 send: "Send"
             },
             tc: {
-                appTitle: "Pulse Rail HK",
+                appTitle: "Pulse HK",
                 metroNetwork: "港鐵",
                 lightRail: "輕鐵",
                 browseByLine: "按路線選擇",
@@ -271,9 +273,15 @@
                 oneCar: "1卡",
                 twoCar: "2卡",
                 to: "往",
-                loadComfortable: "快適寬敞",
-                loadStanding: "適中企位",
-                loadCrowded: "較為擁擠",
+                
+                // Anxiety-Addressing Behavioral States
+                loadVeryEmpty: "連位空座 (極罕見)",
+                loadEmpty: "有空座 (一側有人)",
+                loadModerate: "僅餘空座 (兩側有人)",
+                loadStandingSpace: "企位 (有活動空間)",
+                loadStandingJammed: "擠迫 (肩並肩 / 面貼面)",
+                loadFullSkip: "爆滿 (建議等下一班)",
+                
                 dirUp: "列車開出 (方向 1)",
                 dirDown: "列車開出 (方向 2)",
                 sortByPlatform: "按月台顯示",
@@ -286,7 +294,7 @@
                 send: "發送"
             },
             sc: {
-                appTitle: "Pulse Rail HK",
+                appTitle: "Pulse HK",
                 metroNetwork: "重铁",
                 lightRail: "轻铁",
                 browseByLine: "按路线选择",
@@ -311,9 +319,15 @@
                 oneCar: "1卡",
                 twoCar: "2卡",
                 to: "往",
-                loadComfortable: "舒适宽松",
-                loadStanding: "适中企位",
-                loadCrowded: "较为拥挤",
+                
+                // Anxiety-Addressing Behavioral States
+                loadVeryEmpty: "连位空座 (极罕见)",
+                loadEmpty: "有空座 (一侧有人)",
+                loadModerate: "仅余空座 (两侧有人)",
+                loadStandingSpace: "企位 (有活动空间)",
+                loadStandingJammed: "挤迫 (肩并肩 / 面贴面)",
+                loadFullSkip: "爆满 (建议等下一班)",
+                
                 dirUp: "列车开出 (方向 1)",
                 dirDown: "列车开出 (方向 2)",
                 sortByPlatform: "按站台显示",
@@ -661,42 +675,35 @@
 
         // --- DYNAMIC LOAD FACTOR ESTIMATION ALGORITHMS ---
 
-        // 1. Expected Headway Reference (in minutes)
         function getExpectedHeadway(lineCode, hour) {
             const isPeak = (hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19);
-            
             const peakHeadways = {
                 'TWL': 2.0, 'ISL': 2.0, 'KTL': 2.1, 'TML': 2.7, 
                 'TKL': 2.5, 'EAL': 2.7, 'TCL': 3.6, 'SIL': 3.3, 'AEL': 10.0
             };
-            
             const offPeakHeadways = {
                 'TWL': 3.5, 'ISL': 3.6, 'KTL': 4.0, 'TML': 5.5, 
                 'TKL': 5.0, 'EAL': 6.0, 'TCL': 7.0, 'SIL': 6.0, 'AEL': 15.0
             };
-
             return isPeak ? (peakHeadways[lineCode] || 3.0) : (offPeakHeadways[lineCode] || 5.0);
         }
 
-        // 2. The "Pipe Compression" Density Core Map
-        // Defines the start and end array indices of the heaviest urban zones for each line
         const LINE_ZONES = {
-            'TML': { core: [10, 19] }, // Kai Tak (10) to Tsuen Wan West (19)
-            'TWL': { core: [0, 5] },   // Central (0) to Mong Kok (5)
-            'EAL': { core: [0, 4] },   // Admiralty (0) to Kowloon Tong (4)
-            'TCL': { core: [0, 2] },   // Hong Kong (0) to Olympic (2)
-            'ISL': { core: [3, 8] },   // Sheung Wan (3) to Tin Hau (8)
-            'KTL': { core: [0, 4] },   // Whampoa (0) to Prince Edward (4)
-            'TKL': { core: [0, 2] },   // North Point (0) to Yau Tong (2)
-            'SIL': { core: [0, 0] },   // Admiralty (0)
-            'AEL': { core: [0, 1] }    // Hong Kong (0) to Kowloon (1)
+            'TML': { core: [10, 19] }, 
+            'TWL': { core: [0, 5] },   
+            'EAL': { core: [0, 4] },   
+            'TCL': { core: [0, 2] },   
+            'ISL': { core: [3, 8] },   
+            'KTL': { core: [0, 4] },   
+            'TKL': { core: [0, 2] },   
+            'SIL': { core: [0, 0] },   
+            'AEL': { core: [0, 1] }    
         };
 
         function getDynamicBaseline(lineCode, currentStnKey, destCode, hour) {
             const zone = LINE_ZONES[lineCode];
-            if (!zone) return 40; // Fallback
+            if (!zone) return 40; 
             
-            // Get array indices to calculate distance and direction
             const lineStations = STATIONS.filter(s => s.line === lineCode);
             const currentIdx = lineStations.findIndex(s => s.key === currentStnKey);
             let destIdx = lineStations.findIndex(s => s.code === destCode);
@@ -707,13 +714,11 @@
             const coreEnd = zone.core[1];
             
             const inCore = currentIdx >= coreStart && currentIdx <= coreEnd;
-            const dir = destIdx > currentIdx ? 1 : -1; // 1 = increasing index, -1 = decreasing
+            const dir = destIdx > currentIdx ? 1 : -1; 
             
-            // Assess movement relative to the core
             let towardsCore = (currentIdx < coreStart && dir === 1) || (currentIdx > coreEnd && dir === -1);
             let awayFromCore = (currentIdx < coreStart && dir === -1) || (currentIdx > coreEnd && dir === 1);
             
-            // Calculate distance (stops) from the nearest core edge for mathematical tapering
             let distFromCore = 0;
             if (!inCore) {
                 distFromCore = Math.min(Math.abs(currentIdx - coreStart), Math.abs(currentIdx - coreEnd));
@@ -724,39 +729,29 @@
             
             let baseLoad = 40; 
             
-            // The Station-by-Station Flow Logic
             if (isAM) {
-                if (towardsCore) baseLoad = 80 - (distFromCore * 2.5); // Crowd builds as it nears CBD
+                if (towardsCore) baseLoad = 80 - (distFromCore * 2.5); 
                 else if (inCore) baseLoad = 85; 
-                else if (awayFromCore) baseLoad = 35; // Empty counter-commute
+                else if (awayFromCore) baseLoad = 35; 
             } else if (isPM) {
-                if (awayFromCore) baseLoad = 80 - (distFromCore * 4.5); // Drops rapidly as it enters suburbs
-                else if (inCore) baseLoad = 75; // Packed in the CBD
-                else if (towardsCore) baseLoad = 35; // Empty counter-commute
+                if (awayFromCore) baseLoad = 80 - (distFromCore * 4.5); 
+                else if (inCore) baseLoad = 75; 
+                else if (towardsCore) baseLoad = 35; 
             } else {
-                // Off-Peak
                 if (inCore) baseLoad = 55;
                 else baseLoad = Math.max(20, 50 - (distFromCore * 2));
             }
             
-            return Math.max(15, Math.min(95, baseLoad)); // Clamp limits
+            return Math.max(15, Math.min(95, baseLoad)); 
         }
 
-        // 3. Live Inference Load Calculation for Heavy Rail
         function calculateLoadHR(trains, index, isTerminal, lineCode, destCode) {
             const currentHour = new Date().getHours();
-            
-            // Pull the current station key from the global saved state
             const currentStnKey = savedState['HR'].station;
             
-            // 1. Get the positional baseline
             let baseLoad = getDynamicBaseline(lineCode, currentStnKey, destCode, currentHour);
+            if (isTerminal) baseLoad = baseLoad * 0.65; 
             
-            if (isTerminal) {
-                baseLoad = baseLoad * 0.65; // Terminals clear accumulated crowds
-            }
-            
-            // 2. Extract LIVE headway from the API payload
             const t1 = parseInt(trains[index].ttnt) || 0;
             let t2 = t1 + getExpectedHeadway(lineCode, currentHour); 
             
@@ -769,7 +764,6 @@
             const liveHeadway = Math.max(1, t2 - t1); 
             const expectedHeadway = getExpectedHeadway(lineCode, currentHour);
             
-            // 3. The Gap Penalty
             let gapMultiplier = 1.0;
             if (liveHeadway > expectedHeadway) {
                 gapMultiplier = Math.pow((liveHeadway / expectedHeadway), 1.2); 
@@ -778,12 +772,11 @@
             }
             
             let loadFactor = baseLoad * gapMultiplier;
-            loadFactor += (Math.random() * 6 - 3); // Organic noise
+            loadFactor += (Math.random() * 6 - 3); 
             
             return Math.min(99, Math.max(5, Math.round(loadFactor)));
         }
 
-        // 4. Baseline Load Factor Mapping (Light Rail)
         function getBaselineLoadLRT(hour) {
             const isPeak = (hour >= 7 && hour < 10) || (hour >= 17 && hour < 20);
             const isLunch = hour >= 12 && hour < 14;
@@ -792,22 +785,18 @@
             return 30;
         }
 
-        // 5. Live Inference Load Calculation for Light Rail
         function calculateLoadLRT(trains, index, train_length, currentRouteNo) {
             const currentHour = new Date().getHours();
             let baseLoad = getBaselineLoadLRT(currentHour);
             
             const length = parseInt(train_length) || 1;
-            if (length === 2) {
-                baseLoad = baseLoad * 0.8; // 2-car train handles crowds better
-            }
+            if (length === 2) baseLoad = baseLoad * 0.8; 
 
             let t1 = 0;
             const t1_str = trains[index].time_en;
             if (t1_str === '-' || t1_str === 'arriving') t1 = 0;
             else t1 = parseInt(t1_str) || 0;
             
-            // Search ahead for the next train operating on the SAME route
             let nextTrain = null;
             for (let i = index + 1; i < trains.length; i++) {
                 if (trains[i].route_no === currentRouteNo) {
@@ -816,7 +805,7 @@
                 }
             }
 
-            let t2 = t1 + 8; // Default expected headway for Light Rail
+            let t2 = t1 + 8; 
             if (nextTrain) {
                 const next_t = nextTrain.time_en;
                 if (next_t === '-' || next_t === 'arriving') t2 = 0;
@@ -826,7 +815,6 @@
             const liveHeadway = Math.max(1, t2 - t1);
             const expectedHeadway = 8.0;
             
-            // Gap penalty application
             let gapMultiplier = 1.0;
             if (liveHeadway > expectedHeadway) {
                 gapMultiplier = Math.pow((liveHeadway / expectedHeadway), 1.1); 
@@ -835,7 +823,7 @@
             }
             
             let loadFactor = baseLoad * gapMultiplier;
-            loadFactor += (Math.random() * 6 - 3); // Organic noise
+            loadFactor += (Math.random() * 6 - 3); 
             
             return Math.min(95, Math.max(5, Math.round(loadFactor)));
         }
@@ -918,7 +906,6 @@
         }
 
         function forceManualRefresh() {
-            // Keep the data rendered to avoid layout shifts, just sync in background
             fetchRealTimeData();
         }
 
@@ -1088,15 +1075,9 @@
             interchangeBadges.classList.remove('hidden');
             activeStations.forEach(stn => {
                 const meta = LINE_META[stn.line];
-                const pill = document.createElement('button');
-                pill.className = `px-2 py-1 rounded-md text-[10px] font-bold border ${meta.badge} hover:opacity-80 active:scale-95 transition cursor-pointer`;
+                const pill = document.createElement('span');
+                pill.className = `px-2 py-1 rounded-md text-[10px] font-bold border ${meta.badge}`;
                 pill.textContent = meta.name[currentLang] || meta.name.en;
-                pill.onclick = () => {
-                    const targetEl = document.getElementById(`line-block-${stn.line}`);
-                    if (targetEl) {
-                        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                };
                 interchangePills.appendChild(pill);
             });
         }
@@ -1158,7 +1139,7 @@
                     const lineName = meta.name[currentLang] || meta.name.en;
 
                     newHtml += `
-                        <div id="line-block-${result.lineCode}" class="space-y-4 w-full scroll-mt-4 sm:scroll-mt-6">
+                        <div class="space-y-4 w-full">
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div class="flex items-center gap-3">
                                     <span class="w-2.5 h-7 rounded-full ${meta.color}"></span>
@@ -1307,18 +1288,42 @@
                         loadFactor = calculateLoadLRT(trains, index, train.train_length, train.route_no);
                     }
                     
-                    let barColor = 'bg-emerald-500';
-                    let loadIcon = 'ph-users text-emerald-400';
-                    let loadText = t.loadComfortable;
+                    let loadIcon = 'ph-sparkle';
+                    let loadText = t.loadVeryEmpty;
+                    let bgColor = 'bg-teal-500/10';
+                    let borderColor = 'border-teal-500/20';
+                    let textColor = 'text-teal-400';
 
-                    if (loadFactor >= 80) { 
-                        barColor = 'bg-rose-500'; 
-                        loadIcon = 'ph-warning text-rose-400'; 
-                        loadText = t.loadCrowded; 
-                    } else if (loadFactor >= 55) { 
-                        barColor = 'bg-amber-500'; 
-                        loadIcon = 'ph-users text-amber-400'; 
-                        loadText = t.loadStanding; 
+                    if (loadFactor >= 86) { 
+                        loadIcon = 'ph-warning-octagon'; 
+                        loadText = t.loadFullSkip;
+                        bgColor = 'bg-rose-500/10';
+                        borderColor = 'border-rose-500/20';
+                        textColor = 'text-rose-400';
+                    } else if (loadFactor >= 71) { 
+                        loadIcon = 'ph-users-three'; 
+                        loadText = t.loadStandingJammed;
+                        bgColor = 'bg-orange-500/10';
+                        borderColor = 'border-orange-500/20';
+                        textColor = 'text-orange-400';
+                    } else if (loadFactor >= 51) { 
+                        loadIcon = 'ph-person-simple-walk'; 
+                        loadText = t.loadStandingSpace;
+                        bgColor = 'bg-amber-500/10';
+                        borderColor = 'border-amber-500/20';
+                        textColor = 'text-amber-400';
+                    } else if (loadFactor >= 31) { 
+                        loadIcon = 'ph-users'; 
+                        loadText = t.loadModerate;
+                        bgColor = 'bg-lime-500/10';
+                        borderColor = 'border-lime-500/20';
+                        textColor = 'text-lime-400';
+                    } else if (loadFactor >= 16) { 
+                        loadIcon = 'ph-user'; 
+                        loadText = t.loadEmpty;
+                        bgColor = 'bg-emerald-500/10';
+                        borderColor = 'border-emerald-500/20';
+                        textColor = 'text-emerald-400';
                     }
 
                     html += `
@@ -1337,16 +1342,11 @@
                                 </div>
                             </div>
                             
-                            <div class="mt-2.5 space-y-1.5">
-                                <div class="flex justify-between items-center text-[10px] sm:text-[11px]">
-                                    <span class="flex items-center gap-1.5 text-slate-300 font-medium">
-                                        <i class="ph-bold ${loadIcon}"></i> ${loadText}
-                                    </span>
-                                    <span class="font-mono font-bold text-slate-300">${loadFactor}%</span>
-                                </div>
-                                <div class="w-full bg-slate-950 rounded-full h-1.5 sm:h-2 overflow-hidden border border-slate-800">
-                                    <div class="${barColor} h-1.5 sm:h-2 rounded-full load-bar" style="width: ${loadFactor}%"></div>
-                                </div>
+                            <div class="mt-2.5 flex items-center justify-between ${bgColor} rounded-md p-2 border ${borderColor}">
+                                <span class="flex items-center gap-1.5 font-medium ${textColor} text-[10px] sm:text-[11px] tracking-wide">
+                                    <i class="ph-fill ${loadIcon} text-sm"></i> ${loadText}
+                                </span>
+                                <span class="font-mono font-bold text-slate-500/70 text-[9px]">${loadFactor}%</span>
                             </div>
                         </div>
                     `;
@@ -1360,3 +1360,4 @@
     </script>
 </body>
 </html>
+
