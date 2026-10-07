@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Website last updated on: October 7, 2026, 10:11 AM HKT -->
+<!-- Website last updated on: October 7, 2026, 6:56 PM HKT -->
 <html lang="en" class="dark overflow-x-hidden" translate="no">
 <head>
     <meta charset="UTF-8">
@@ -86,7 +86,7 @@
                     <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight flex items-baseline gap-2">
                         <span id="uiAppTitle" class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">Pulse HK</span>
                     </h1>
-                    <span class="text-[9px] sm:text-[10px] font-mono text-emerald-500/80 tracking-wider mt-0.5">UPDATED: OCT 7, 10:11 AM</span>
+                    <span class="text-[9px] sm:text-[10px] font-mono text-emerald-500/80 tracking-wider mt-0.5">UPDATED: OCT 7, 6:56 PM</span>
                 </div>
             </div>
 
@@ -129,7 +129,7 @@
                 </div>
 
                 <div class="w-full">
-                    <label id="lblStationSelect" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Station (Interchanges Auto-Link)</label>
+                    <label id="lblStationSelect" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Station (Arriving Sequence)</label>
                     <select id="stationSelect" class="w-full bg-slate-900 border border-slate-700/80 text-slate-100 rounded-lg py-2 px-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-sm font-medium">
                     </select>
                 </div>
@@ -182,7 +182,7 @@
                 lightRail: "Light Rail",
                 browseByLine: "Browse by Line",
                 browseByZone: "Browse by Zone",
-                selectStation: "Station (Interchanges Auto-Link)",
+                selectStation: "Station (Arriving Sequence)",
                 nearestStation: "Nearest Station",
                 connectedLines: "Interchange Lines:",
                 locatingGps: "Locating via GPS...",
@@ -203,13 +203,10 @@
                 twoCar: "2-Car",
                 to: "To",
                 
-                // Streamlined 6-Tier Occupancy System
-                loadVeryEmpty: "Empty",
-                loadEmpty: "Both Sides Free",
-                loadModerate: "One Side Free",
-                loadStandingSpace: "Standing Only",
-                loadStandingJammed: "Crowded Standing",
-                loadFullSkip: "Full (Next Train)",
+                // Strict 3-Tier System
+                loadHasSeats: "Has Seats",
+                loadStanding: "Standing",
+                loadNoSeats: "No Seats",
                 
                 dirUp: "Departures (Direction 1)",
                 dirDown: "Departures (Direction 2)",
@@ -223,7 +220,7 @@
                 lightRail: "輕鐵",
                 browseByLine: "按路線選擇",
                 browseByZone: "按區域選擇",
-                selectStation: "車站（自動連結轉乘站）",
+                selectStation: "車站（按行車順序）",
                 nearestStation: "最近車站",
                 connectedLines: "可轉乘路線：",
                 locatingGps: "正在進行 GPS 定位...",
@@ -244,13 +241,10 @@
                 twoCar: "2卡",
                 to: "往",
                 
-                // Streamlined 6-Tier Occupancy System
-                loadVeryEmpty: "空廂",
-                loadEmpty: "兩邊有位",
-                loadModerate: "單邊有位",
-                loadStandingSpace: "企位",
-                loadStandingJammed: "企位人多",
-                loadFullSkip: "車滿等下班",
+                // Strict 3-Tier System
+                loadHasSeats: "有座位",
+                loadStanding: "企位",
+                loadNoSeats: "無座位",
                 
                 dirUp: "列車開出 (方向 1)",
                 dirDown: "列車開出 (方向 2)",
@@ -264,7 +258,7 @@
                 lightRail: "轻铁",
                 browseByLine: "按路线选择",
                 browseByZone: "按区域选择",
-                selectStation: "车站（自动链接换乘站）",
+                selectStation: "车站（按行车顺序）",
                 nearestStation: "最近车站",
                 connectedLines: "可换乘路线：",
                 locatingGps: "正在进行 GPS 定位...",
@@ -285,13 +279,10 @@
                 twoCar: "2卡",
                 to: "往",
                 
-                // Streamlined 6-Tier Occupancy System
-                loadVeryEmpty: "空厢",
-                loadEmpty: "两侧有座",
-                loadModerate: "单侧有座",
-                loadStandingSpace: "站位",
-                loadStandingJammed: "站位人多",
-                loadFullSkip: "车满等下趟",
+                // Strict 3-Tier System
+                loadHasSeats: "有座位",
+                loadStanding: "站位",
+                loadNoSeats: "无座位",
                 
                 dirUp: "列车开出 (方向 1)",
                 dirDown: "列车开出 (方向 2)",
@@ -592,7 +583,7 @@
                 '柴': '柴', '將': '将', '軍': '军', '寶': '宝', '琳': '琳', '會': '会', '展': '展', '紅': '红',
                 '磡': '磡', '場': '场', '學': '学', '墟': '墟', '粉': '粉', '羅': '罗', '落': '落', '馬': '马',
                 '洲': '洲', '海': '海', '洋': '洋', '島': '岛', '烏': '乌', '溪': '溪', '沙': '沙', '鞍': '鞍',
-                '恆': '恒', '車': '车', '廟': '庙', '顯': '显', '徑': '径', '啟': '启', '德': '德',
+                '恆': '恒', '車': '公', '廟': '庙', '顯': '显', '徑': '径', '啟': '启', '德': '德',
                 '瓜': '瓜', '柯': '柯', '士': '士', '甸': '甸', '錦': '锦', '屏': '屏', '濕': '湿', '座': '座',
                 '翠': '翠', '頌': '颂', '恒': '恒'
             };
@@ -875,10 +866,10 @@
             stationSelect.innerHTML = '';
             const filtered = STATIONS.filter(s => s.line === lineCode);
             
-            filtered.forEach(station => {
+            filtered.forEach((station, idx) => {
                 const opt = document.createElement('option');
                 opt.value = station.key; 
-                opt.textContent = station.name[currentLang] || station.name.en;
+                opt.textContent = `${idx + 1}.${station.name[currentLang] || station.name.en}`;
                 stationSelect.appendChild(opt);
             });
 
@@ -1208,42 +1199,24 @@
                         loadFactor = calculateLoadLRT(trains, index, train.train_length, train.route_no);
                     }
                     
-                    let loadIcon = 'ph-sparkle';
-                    let loadText = t.loadVeryEmpty;
-                    let bgColor = 'bg-teal-500/10';
-                    let borderColor = 'border-teal-500/20';
-                    let textColor = 'text-teal-400';
+                    let loadIcon = 'ph-user';
+                    let loadText = t.loadHasSeats;
+                    let bgColor = 'bg-emerald-500/10';
+                    let borderColor = 'border-emerald-500/20';
+                    let textColor = 'text-emerald-400';
 
-                    if (loadFactor >= 99) { 
+                    if (loadFactor >= 86) { 
                         loadIcon = 'ph-warning-octagon'; 
-                        loadText = t.loadFullSkip;
+                        loadText = t.loadNoSeats;
                         bgColor = 'bg-rose-500/10';
                         borderColor = 'border-rose-500/20';
                         textColor = 'text-rose-400';
-                    } else if (loadFactor >= 75) { 
-                        loadIcon = 'ph-users-three'; 
-                        loadText = t.loadStandingJammed;
-                        bgColor = 'bg-orange-500/10';
-                        borderColor = 'border-orange-500/20';
-                        textColor = 'text-orange-400';
                     } else if (loadFactor >= 51) { 
                         loadIcon = 'ph-person-simple-walk'; 
-                        loadText = t.loadStandingSpace;
+                        loadText = t.loadStanding;
                         bgColor = 'bg-amber-500/10';
                         borderColor = 'border-amber-500/20';
                         textColor = 'text-amber-400';
-                    } else if (loadFactor >= 31) { 
-                        loadIcon = 'ph-users'; 
-                        loadText = t.loadModerate;
-                        bgColor = 'bg-lime-500/10';
-                        borderColor = 'border-lime-500/20';
-                        textColor = 'text-lime-400';
-                    } else if (loadFactor >= 16) { 
-                        loadIcon = 'ph-user'; 
-                        loadText = t.loadEmpty;
-                        bgColor = 'bg-emerald-500/10';
-                        borderColor = 'border-emerald-500/20';
-                        textColor = 'text-emerald-400';
                     }
 
                     html += `
@@ -1280,3 +1253,4 @@
     </script>
 </body>
 </html>
+
