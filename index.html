@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Website last updated on: October 7, 2026, 9:20 PM HKT -->
+<!-- Website last updated on: October 7, 2026, 9:50 PM HKT -->
 <html lang="en" class="dark overflow-x-hidden" translate="no">
 <head>
     <meta charset="UTF-8">
@@ -86,7 +86,7 @@
                     <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight flex items-baseline gap-2">
                         <span id="uiAppTitle" class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">Pulse HK</span>
                     </h1>
-                    <span class="text-[9px] sm:text-[10px] font-mono text-emerald-500/80 tracking-wider mt-0.5">UPDATED: OCT 7, 9:20 PM</span>
+                    <span class="text-[9px] sm:text-[10px] font-mono text-emerald-500/80 tracking-wider mt-0.5">UPDATED: OCT 7, 9:50 PM</span>
                 </div>
             </div>
 
@@ -204,9 +204,9 @@
                 to: "To",
                 
                 // Strict 3-Tier System
-                loadHasSeats: "Has Seats",
+                loadHasSeats: "Seating available",
                 loadStanding: "Standing",
-                loadNoSeats: "No Seats",
+                loadCrowdedStanding: "Crowded standing",
                 
                 dirUp: "Departures (Direction 1)",
                 dirDown: "Departures (Direction 2)",
@@ -242,9 +242,9 @@
                 to: "往",
                 
                 // Strict 3-Tier System
-                loadHasSeats: "有座位",
+                loadHasSeats: "有座",
                 loadStanding: "企位",
-                loadNoSeats: "無座位",
+                loadCrowdedStanding: "人多企位",
                 
                 dirUp: "列車開出 (方向 1)",
                 dirDown: "列車開出 (方向 2)",
@@ -280,9 +280,9 @@
                 to: "往",
                 
                 // Strict 3-Tier System
-                loadHasSeats: "有座位",
+                loadHasSeats: "有座",
                 loadStanding: "站位",
-                loadNoSeats: "无座位",
+                loadCrowdedStanding: "人多站位",
                 
                 dirUp: "列车开出 (方向 1)",
                 dirDown: "列车开出 (方向 2)",
@@ -569,27 +569,6 @@
         let timeRemaining = 15;
         const REFRESH_RATE = 15;
 
-        function tcToSc(text) {
-            if (!text) return text;
-            const scMap = {
-                '門': '门', '鐵': '铁', '廠': '厂', '圍': '围', '朗': '朗', '康': '康', '愛': '爱', '聖': '圣',
-                '逸': '逸', '灣': '湾', '碼': '码', '頭': '头', '澤': '泽', '豐': '丰', '醫': '医', '院': '院',
-                '麒': '麒', '麟': '麟', '松': '松', '景': '景', '興': '兴', '銀': '银', '安': '安', '橋': '桥',
-                '鳳': '凤', '綫': '线', '車': '车', '廂': '厢', '區': '区', '站': '站', '臺': '台', '東': '东',
-                '西': '西', '北': '北', '國': '国', '際': '际', '博': '博', '覽': '览', '館': '馆', '奧': '奥',
-                '運': '运', '荔': '荔', '欣': '欣', '涌': '涌', '環': '环', '金': '金', '鐘': '钟', '咀': '咀',
-                '華': '华', '埔': '埔', '硤': '硖', '鑽': '钻', '石': '石', '嶺': '岭', '堅': '坚', '尼': '尼',
-                '盤': '盘', '銅': '铜', '炮': '炮', '鰂': '鰂', '魚': '鱼', '筲': '筲', '箕': '箕', '邨': '邨',
-                '柴': '柴', '將': '将', '軍': '军', '寶': '宝', '琳': '琳', '會': '会', '展': '展', '紅': '红',
-                '磡': '磡', '場': '场', '學': '学', '墟': '墟', '粉': '粉', '羅': '罗', '落': '落', '馬': '马',
-                '洲': '洲', '海': '海', '洋': '洋', '島': '岛', '烏': '乌', '溪': '溪', '沙': '沙', '鞍': '鞍',
-                '恆': '恒', '車': '公', '廟': '庙', '顯': '显', '徑': '径', '啟': '启', '德': '德',
-                '瓜': '瓜', '柯': '柯', '士': '士', '甸': '甸', '錦': '锦', '屏': '屏', '濕': '湿', '座': '座',
-                '翠': '翠', '頌': '颂', '恒': '恒'
-            };
-            return text.split('').map(c => scMap[c] || c).join('');
-        }
-
         // --- DYNAMIC LOAD FACTOR ESTIMATION ALGORITHMS ---
 
         function getExpectedHeadway(lineCode, hour) {
@@ -751,7 +730,6 @@
             fetchRealTimeData();
         }
 
-        // Fix 1: Switch line directly from clicking an interchange badge
         window.switchLine = function(newLineCode) {
             const targetMeta = LINE_META[newLineCode];
             if (!targetMeta) return;
@@ -767,7 +745,6 @@
 
             populateStationDropdown(newLineCode, savedState[currentNetwork].station);
             
-            // If the current station doesn't exist on the new line, default to the first station
             if (stationSelect.value !== savedState[currentNetwork].station) {
                 savedState[currentNetwork].station = stationSelect.value;
             }
@@ -887,7 +864,6 @@
                 });
         }
 
-        // Fix 2: Auto-inject sequence numbering into the dropdown list
         function populateStationDropdown(lineCode, selectStationKey = null) {
             stationSelect.innerHTML = '';
             const filtered = STATIONS.filter(s => s.line === lineCode);
@@ -990,7 +966,15 @@
             if (countdownTimer) clearInterval(countdownTimer);
             timeRemaining = REFRESH_RATE;
             syncIcon.classList.remove('animate-spin');
-            countdownText.textContent = `${timeRemaining}s`;              countdownTimer = setInterval(() => {                 timeRemaining--;                 if (timeRemaining <= 0) {                     clearInterval(countdownTimer);                     fetchRealTimeData();                 } else {                     countdownText.textContent = `${timeRemaining}s`;
+            countdownText.textContent = `${timeRemaining}s`;
+
+            countdownTimer = setInterval(() => {
+                timeRemaining--;
+                if (timeRemaining <= 0) {
+                    clearInterval(countdownTimer);
+                    fetchRealTimeData();
+                } else {
+                    countdownText.textContent = `${timeRemaining}s`;
                 }
             }, 1000);
         }
@@ -998,7 +982,6 @@
         function renderInterchangePills(activeStations) {
             interchangePills.innerHTML = '';
             
-            // Get all unique lines this station connects to, EXCLUDING the current active line
             const currentLineCode = savedState[currentNetwork].line;
             const uniqueInterchangeLines = [...new Set(activeStations.map(stn => stn.line))].filter(lineCode => lineCode !== currentLineCode);
 
@@ -1013,7 +996,6 @@
                 const meta = LINE_META[lineCode];
                 if(meta) {
                     const pill = document.createElement('button');
-                    // Add hover states and click events to make them interactive
                     pill.className = `px-2 py-1 rounded-md text-[10px] font-bold border ${meta.badge} hover:brightness-125 hover:scale-105 active:scale-95 transition cursor-pointer`;
                     pill.textContent = meta.name[currentLang] || meta.name.en;
                     pill.onclick = () => window.switchLine(lineCode);
@@ -1234,10 +1216,9 @@
                     let borderColor = 'border-emerald-500/20';
                     let textColor = 'text-emerald-400';
 
-                    // Fix 2: 3-Tier Threshold Logic aligned to 15% physical seating capacity
                     if (loadFactor > 85) { 
                         loadIcon = 'ph-warning-octagon'; 
-                        loadText = t.loadNoSeats;
+                        loadText = t.loadCrowdedStanding;
                         bgColor = 'bg-rose-500/10';
                         borderColor = 'border-rose-500/20';
                         textColor = 'text-rose-400';
