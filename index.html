@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Website last updated on: October 7, 2026, 9:49 AM HKT -->
+<!-- Website last updated on: October 7, 2026, 10:11 AM HKT -->
 <html lang="en" class="dark overflow-x-hidden" translate="no">
 <head>
     <meta charset="UTF-8">
@@ -86,7 +86,7 @@
                     <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight flex items-baseline gap-2">
                         <span id="uiAppTitle" class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">Pulse HK</span>
                     </h1>
-                    <span class="text-[9px] sm:text-[10px] font-mono text-emerald-500/80 tracking-wider mt-0.5">UPDATED: OCT 7, 9:49 AM</span>
+                    <span class="text-[9px] sm:text-[10px] font-mono text-emerald-500/80 tracking-wider mt-0.5">UPDATED: OCT 7, 10:11 AM</span>
                 </div>
             </div>
 
@@ -203,13 +203,13 @@
                 twoCar: "2-Car",
                 to: "To",
                 
-                // Neutral Spatial States
+                // Streamlined 6-Tier Occupancy System
                 loadVeryEmpty: "Empty",
-                loadEmpty: "Many Seats",
-                loadModerate: "Some Seats",
-                loadStandingSpace: "Standing Room",
-                loadStandingJammed: "Crowded",
-                loadFullSkip: "Full",
+                loadEmpty: "Both Sides Free",
+                loadModerate: "One Side Free",
+                loadStandingSpace: "Standing Only",
+                loadStandingJammed: "Crowded Standing",
+                loadFullSkip: "Full (Next Train)",
                 
                 dirUp: "Departures (Direction 1)",
                 dirDown: "Departures (Direction 2)",
@@ -244,13 +244,13 @@
                 twoCar: "2卡",
                 to: "往",
                 
-                // Neutral Spatial States (2-character)
+                // Streamlined 6-Tier Occupancy System
                 loadVeryEmpty: "空廂",
-                loadEmpty: "寬敞",
-                loadModerate: "尚有",
+                loadEmpty: "兩邊有位",
+                loadModerate: "單邊有位",
                 loadStandingSpace: "企位",
-                loadStandingJammed: "人多",
-                loadFullSkip: "客滿",
+                loadStandingJammed: "企位人多",
+                loadFullSkip: "車滿等下班",
                 
                 dirUp: "列車開出 (方向 1)",
                 dirDown: "列車開出 (方向 2)",
@@ -285,13 +285,13 @@
                 twoCar: "2卡",
                 to: "往",
                 
-                // Neutral Spatial States (2-character)
+                // Streamlined 6-Tier Occupancy System
                 loadVeryEmpty: "空厢",
-                loadEmpty: "宽敞",
-                loadModerate: "尚有",
+                loadEmpty: "两侧有座",
+                loadModerate: "单侧有座",
                 loadStandingSpace: "站位",
-                loadStandingJammed: "人多",
-                loadFullSkip: "客满",
+                loadStandingJammed: "站位人多",
+                loadFullSkip: "车满等下趟",
                 
                 dirUp: "列车开出 (方向 1)",
                 dirDown: "列车开出 (方向 2)",
@@ -359,7 +359,7 @@
             },
             'LRT_TSW': { 
                 network: 'LRT', code: 'LRT_TSW',
-                name: { en: 'Light Rail (Tin Shui Wai)', tc: '輕鐵 (天水圍)', sc: '轻铁 (天水围)' }, 
+                name: { en: 'Light Rail (Tin Shui Wai)', tc: '輕鐵 (天水围)', sc: '轻铁 (天水围)' }, 
                 color: 'bg-orange-400', border: 'border-t-orange-400', text: 'text-orange-300', badge: 'bg-orange-400/20 text-orange-200 border-orange-400/30'
             }
         };
@@ -584,7 +584,7 @@
                 '門': '门', '鐵': '铁', '廠': '厂', '圍': '围', '朗': '朗', '康': '康', '愛': '爱', '聖': '圣',
                 '逸': '逸', '灣': '湾', '碼': '码', '頭': '头', '澤': '泽', '豐': '丰', '醫': '医', '院': '院',
                 '麒': '麒', '麟': '麟', '松': '松', '景': '景', '興': '兴', '銀': '银', '安': '安', '橋': '桥',
-                '鳳': '凤', '綫': '线', '車': '車', '廂': '厢', '區': '区', '站': '站', '臺': '台', '東': '东',
+                '鳳': '凤', '綫': '线', '車': '车', '廂': '厢', '區': '区', '站': '站', '臺': '台', '東': '东',
                 '西': '西', '北': '北', '國': '国', '際': '际', '博': '博', '覽': '览', '館': '馆', '奧': '奥',
                 '運': '运', '荔': '荔', '欣': '欣', '涌': '涌', '環': '环', '金': '金', '鐘': '钟', '咀': '咀',
                 '華': '华', '埔': '埔', '硤': '硖', '鑽': '钻', '石': '石', '嶺': '岭', '堅': '坚', '尼': '尼',
@@ -592,7 +592,7 @@
                 '柴': '柴', '將': '将', '軍': '军', '寶': '宝', '琳': '琳', '會': '会', '展': '展', '紅': '红',
                 '磡': '磡', '場': '场', '學': '学', '墟': '墟', '粉': '粉', '羅': '罗', '落': '落', '馬': '马',
                 '洲': '洲', '海': '海', '洋': '洋', '島': '岛', '烏': '乌', '溪': '溪', '沙': '沙', '鞍': '鞍',
-                '恆': '恒', '車': '公', '廟': '庙', '顯': '显', '徑': '径', '啟': '启', '德': '德',
+                '恆': '恒', '車': '车', '廟': '庙', '顯': '显', '徑': '径', '啟': '启', '德': '德',
                 '瓜': '瓜', '柯': '柯', '士': '士', '甸': '甸', '錦': '锦', '屏': '屏', '濕': '湿', '座': '座',
                 '翠': '翠', '頌': '颂', '恒': '恒'
             };
@@ -973,7 +973,15 @@
             if (countdownTimer) clearInterval(countdownTimer);
             timeRemaining = REFRESH_RATE;
             syncIcon.classList.remove('animate-spin');
-            countdownText.textContent = `${timeRemaining}s`;              countdownTimer = setInterval(() => {                 timeRemaining--;                 if (timeRemaining <= 0) {                     clearInterval(countdownTimer);                     fetchRealTimeData();                 } else {                     countdownText.textContent = `${timeRemaining}s`;
+            countdownText.textContent = `${timeRemaining}s`;
+
+            countdownTimer = setInterval(() => {
+                timeRemaining--;
+                if (timeRemaining <= 0) {
+                    clearInterval(countdownTimer);
+                    fetchRealTimeData();
+                } else {
+                    countdownText.textContent = `${timeRemaining}s`;
                 }
             }, 1000);
         }
