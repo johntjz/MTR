@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Website last updated on: October 7, 2026, 9:12 AM HKT -->
+<!-- Website last updated on: October 7, 2026, 9:22 AM HKT -->
 <html lang="en" class="dark overflow-x-hidden" translate="no">
 <head>
     <meta charset="UTF-8">
@@ -86,7 +86,7 @@
                     <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight flex items-baseline gap-2">
                         <span id="uiAppTitle" class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">Pulse HK</span>
                     </h1>
-                    <span class="text-[9px] sm:text-[10px] font-mono text-emerald-500/80 tracking-wider mt-0.5">UPDATED: OCT 7, 9:12 AM</span>
+                    <span class="text-[9px] sm:text-[10px] font-mono text-emerald-500/80 tracking-wider mt-0.5">UPDATED: OCT 7, 9:22 AM</span>
                 </div>
             </div>
 
@@ -156,34 +156,9 @@
         </section>
         
         <!-- Footer -->
-        <footer class="text-center text-slate-500 text-[10px] sm:text-xs py-4 space-y-3 border-t border-slate-800/60 w-full">
-            <button onclick="openFeedbackModal()" id="btnFeedback" class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition border border-slate-700 hover:border-slate-600">
-                <i class="ph-bold ph-chat-circle-text text-emerald-400"></i>
-                Send Feedback
-            </button>
-            <p class="text-slate-600 font-mono tracking-wide">Pulse &bull; Last Updated: Oct 7, 2026, 9:12 AM HKT</p>
+        <footer class="text-center text-slate-500 text-[10px] sm:text-xs py-4 border-t border-slate-800/60 w-full">
+            <p class="text-slate-600 font-mono tracking-wide">Pulse &bull; Last Updated: Oct 7, 2026, 9:22 AM HKT</p>
         </footer>
-    </div>
-
-    <!-- Feedback Modal -->
-    <div id="feedbackModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 w-full h-full">
-        <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-md p-6 shadow-2xl overflow-hidden relative">
-            <div class="flex justify-between items-center mb-4">
-                <h2 id="modalTitle" class="text-lg font-bold text-white flex items-center gap-2">
-                    <i class="ph-bold ph-envelope-simple text-emerald-400"></i> Send Feedback
-                </h2>
-                <button onclick="closeFeedbackModal()" class="text-slate-400 hover:text-white transition p-1">
-                    <i class="ph-bold ph-x text-xl"></i>
-                </button>
-            </div>
-            <form id="feedbackForm" onsubmit="submitFeedback(event)">
-                <textarea id="fbMessage" rows="5" required class="w-full bg-slate-950 border border-slate-700 text-slate-100 rounded-xl p-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-base sm:text-sm mb-4 resize-none" placeholder="Tell us what you think or report an issue..."></textarea>
-                <div class="flex justify-end gap-3">
-                    <button type="button" onclick="closeFeedbackModal()" id="btnCancel" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition border border-slate-700">Cancel</button>
-                    <button type="submit" id="btnSend" class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition shadow-lg shadow-emerald-600/20">Send</button>
-                </div>
-            </form>
-        </div>
     </div>
 
     <script>
@@ -228,10 +203,10 @@
                 twoCar: "2-Car",
                 to: "To",
                 
-                // Anxiety-Addressing Behavioral States
+                // Anxiety-Addressing Behavioral States (Positive Framing)
                 loadVeryEmpty: "Seats: Both sides free",
-                loadEmpty: "Seats: One side taken",
-                loadModerate: "Seats: Both sides taken",
+                loadEmpty: "Seats: One side free",
+                loadModerate: "Seats: Single seats available",
                 loadStandingSpace: "Standing: With space",
                 loadStandingJammed: "Jammed: Face-to-face",
                 loadFullSkip: "Full: Wait for next train",
@@ -240,12 +215,7 @@
                 dirDown: "Departures (Direction 2)",
                 sortByPlatform: "Sort by Platform",
                 sortByRoute: "Sort by Route",
-                syncNow: "Syncing...",
-                feedbackBtn: "Send Feedback",
-                feedbackTitle: "Send Feedback",
-                feedbackPlaceholder: "Tell us what you think or report an issue...",
-                cancel: "Cancel",
-                send: "Send"
+                syncNow: "Syncing..."
             },
             tc: {
                 appTitle: "Pulse HK",
@@ -274,10 +244,10 @@
                 twoCar: "2卡",
                 to: "往",
                 
-                // Anxiety-Addressing Behavioral States
-                loadVeryEmpty: "連位空座 (極罕見)",
-                loadEmpty: "有空座 (一側有人)",
-                loadModerate: "僅餘空座 (兩側有人)",
+                // Anxiety-Addressing Behavioral States (Positive Framing)
+                loadVeryEmpty: "座位: 兩側皆空",
+                loadEmpty: "座位: 一側有空位",
+                loadModerate: "座位: 尚有單人位",
                 loadStandingSpace: "企位 (有活動空間)",
                 loadStandingJammed: "擠迫 (肩並肩 / 面貼面)",
                 loadFullSkip: "爆滿 (建議等下一班)",
@@ -286,12 +256,7 @@
                 dirDown: "列車開出 (方向 2)",
                 sortByPlatform: "按月台顯示",
                 sortByRoute: "按路線顯示",
-                syncNow: "同步中...",
-                feedbackBtn: "發送意見回饋",
-                feedbackTitle: "意見回饋",
-                feedbackPlaceholder: "請輸入您的意見或回報問題...",
-                cancel: "取消",
-                send: "發送"
+                syncNow: "同步中..."
             },
             sc: {
                 appTitle: "Pulse HK",
@@ -320,10 +285,10 @@
                 twoCar: "2卡",
                 to: "往",
                 
-                // Anxiety-Addressing Behavioral States
-                loadVeryEmpty: "连位空座 (极罕见)",
-                loadEmpty: "有空座 (一侧有人)",
-                loadModerate: "仅余空座 (两侧有人)",
+                // Anxiety-Addressing Behavioral States (Positive Framing)
+                loadVeryEmpty: "座位: 两侧皆空",
+                loadEmpty: "座位: 一侧有空位",
+                loadModerate: "座位: 尚有单人位",
                 loadStandingSpace: "企位 (有活动空间)",
                 loadStandingJammed: "挤迫 (肩并肩 / 面贴面)",
                 loadFullSkip: "爆满 (建议等下一班)",
@@ -332,12 +297,7 @@
                 dirDown: "列车开出 (方向 2)",
                 sortByPlatform: "按站台显示",
                 sortByRoute: "按路线显示",
-                syncNow: "同步中...",
-                feedbackBtn: "发送意见反馈",
-                feedbackTitle: "意见反馈",
-                feedbackPlaceholder: "请输入您的意见或回报问题...",
-                cancel: "取消",
-                send: "发送"
+                syncNow: "同步中..."
             }
         };
 
@@ -618,40 +578,6 @@
         let timeRemaining = 15;
         const REFRESH_RATE = 15;
 
-        // Feedback Modal Logic
-        function openFeedbackModal() {
-            document.getElementById('feedbackModal').classList.remove('hidden');
-        }
-        
-        function closeFeedbackModal() {
-            document.getElementById('feedbackModal').classList.add('hidden');
-        }
-        
-        function submitFeedback(e) {
-            e.preventDefault();
-            const msg = document.getElementById('fbMessage').value;
-            const user = 'mtrtimehk';
-            const domain = 'gmail.com';
-            const emailAddress = `${user}@${domain}`;
-            const subject = encodeURIComponent('Pulse App Feedback');
-            const body = encodeURIComponent(msg);
-            
-            window.location.href = `mailto:${emailAddress}?subject=${subject}&body=${body}`;
-            
-            const form = document.getElementById('feedbackForm');
-            form.innerHTML = `
-                <div class="text-center space-y-4 py-6">
-                    <i class="ph-fill ph-check-circle text-5xl text-emerald-400"></i>
-                    <p class="text-slate-200 font-medium">Opening your email app...</p>
-                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                        <p class="text-sm text-slate-400 mb-2">If nothing happened, your device doesn't have a default mail app set. Please email us directly at:</p>
-                        <p class="text-emerald-400 font-mono font-bold select-all">${emailAddress}</p>
-                    </div>
-                    <button type="button" onclick="closeFeedbackModal(); setTimeout(() => location.reload(), 300);" class="mt-4 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-lg transition border border-slate-700 w-full">Close</button>
-                </div>
-            `;
-        }
-
         function tcToSc(text) {
             if (!text) return text;
             const scMap = {
@@ -924,12 +850,6 @@
             document.getElementById('uiGpsBtnText').textContent = t.nearestStation;
             document.getElementById('uiInterchangeLabel').textContent = t.connectedLines;
             
-            document.getElementById('btnFeedback').innerHTML = `<i class="ph-bold ph-chat-circle-text text-emerald-400"></i> ${t.feedbackBtn}`;
-            document.getElementById('modalTitle').innerHTML = `<i class="ph-bold ph-envelope-simple text-emerald-400"></i> ${t.feedbackTitle}`;
-            document.getElementById('fbMessage').placeholder = t.feedbackPlaceholder;
-            document.getElementById('btnCancel').textContent = t.cancel;
-            document.getElementById('btnSend').textContent = t.send;
-
             updateNetworkToggleUI(currentNetwork);
             populateLineDropdown();
             lineSelect.value = savedState[currentNetwork].line;
