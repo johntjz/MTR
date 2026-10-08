@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Website last updated on: October 7, 2026, 9:50 PM HKT -->
+<!-- Website last updated on: October 8, 2026, 10:17 AM HKT -->
 <html lang="en" class="dark overflow-x-hidden" translate="no">
 <head>
     <meta charset="UTF-8">
@@ -86,7 +86,7 @@
                     <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight flex items-baseline gap-2">
                         <span id="uiAppTitle" class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">Pulse HK</span>
                     </h1>
-                    <span class="text-[9px] sm:text-[10px] font-mono text-emerald-500/80 tracking-wider mt-0.5">UPDATED: OCT 7, 9:50 PM</span>
+                    <span class="text-[9px] sm:text-[10px] font-mono text-emerald-500/80 tracking-wider mt-0.5">UPDATED: OCT 8, 10:17 AM</span>
                 </div>
             </div>
 
@@ -478,7 +478,7 @@
             { key: 'KAT', line: 'TML', code: 'KAT', name: { en: 'Kai Tak', tc: '啟德', sc: '启德' }, lat: 22.3323, lng: 114.1966, isTerminal: false },
             { key: 'SUW', line: 'TML', code: 'SUW', name: { en: 'Sung Wong Toi', tc: '宋皇臺', sc: '宋皇台' }, lat: 22.3275, lng: 114.1906, isTerminal: false },
             { key: 'TKW', line: 'TML', code: 'TKW', name: { en: 'To Kwa Wan', tc: '土瓜灣', sc: '土瓜湾' }, lat: 22.3168, lng: 114.1887, isTerminal: false },
-            { key: 'HOM', line: 'TML', code: 'HOM', name: { en: 'Ho Man Tin', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
+            { key: 'HOM', line: 'TML', code: 'HOM', name: { en: '何文田', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
             { key: 'HUH', line: 'TML', code: 'HUH', name: { en: 'Hung Hom', tc: '紅磡', sc: '红磡' }, lat: 22.3031, lng: 114.1818, isTerminal: false },
             { key: 'ETS', line: 'TML', code: 'ETS', name: { en: 'East Tsim Sha Tsui', tc: '尖東', sc: '尖东' }, lat: 22.2963, lng: 114.1748, isTerminal: false },
             { key: 'AUS', line: 'TML', code: 'AUS', name: { en: 'Austin', tc: '柯士甸', sc: '柯士甸' }, lat: 22.3045, lng: 114.1661, isTerminal: false },
@@ -1246,11 +1246,10 @@
                                 </div>
                             </div>
                             
-                            <div class="mt-2.5 flex items-center justify-between ${bgColor} rounded-md p-2 border ${borderColor}">
+                            <div class="mt-2.5 flex items-center justify-start ${bgColor} rounded-md p-2 border ${borderColor}">
                                 <span class="flex items-center gap-1.5 font-medium ${textColor} text-[10px] sm:text-[11px] tracking-wide">
-                                    <i class="ph-fill ${loadIcon} text-sm"></i> ${loadText}
+                                    <i class="ph-fill ${loadIcon} text-sm"></i> ${loadText} <span class="font-mono font-bold opacity-90">${loadFactor}%</span>
                                 </span>
-                                <span class="font-mono font-bold text-slate-500/70 text-[9px]">${loadFactor}%</span>
                             </div>
                         </div>
                     `;
