@@ -356,8 +356,13 @@ let previousView = 'main';
 let allStops = [];
 let groupedRoutes = []; 
 let routeStopsCache = {};
-let favRoutes = JSON.parse(localStorage.getItem('mtr_fav_routes_v5') || '[]');
-const realRouteCache = JSON.parse(localStorage.getItem('pulse_hk_real_routes') || '{}');
+
+// Safe parsing for local storage to prevent corruption crashes
+let favRoutes = [];
+try { favRoutes = JSON.parse(localStorage.getItem('mtr_fav_routes_v5') || '[]'); } catch(e) {}
+
+let realRouteCache = {};
+try { realRouteCache = JSON.parse(localStorage.getItem('pulse_hk_real_routes') || '{}'); } catch(e) {}
 
 let lastKnownPos = null;
 let currentNearestStopKey = null;
@@ -516,13 +521,12 @@ function calculateLoadLRT(trains, index, train_length, currentRouteNo, currentHo
 async function getRealRouteGeometry(group) {
     if (realRouteCache[group.key]) return realRouteCache[group.key];
 
-    let lineName = group.dest_e; // 'dest_e' holds the physical line name via LINE_META mapping
+    let lineName = group.dest_e;
     if (lineName.includes('East Rail Line')) lineName = 'East Rail Line';
     if (lineName.includes('Tseung Kwan O Line')) lineName = 'Tseung Kwan O Line';
 
     let query = '';
     if (group.network === 'HR') {
-        // Query both name:en and name just in case OSM tags vary.
         query = `[out:json][timeout:15];(relation["route"~"subway|train|railway"]["name:en"~"${lineName}"];relation["route"~"subway|train|railway"]["name"~"${lineName}"]);out geom;`;
     } else {
         query = `[out:json][timeout:15];relation["route"="light_rail"]["ref"="${group.routeNo}"];out geom;`;
@@ -1095,13 +1099,33 @@ function updateLiveCountdowns() {
 
 async function initApp() {
   try {
+    // -----------------------------------------------------------------
+    // NEW SAFETY CHECK: Ensures routes.js was actually loaded properly.
+    if (typeof HR_ROUTES === 'undefined' || typeof LINE_META === 'undefined') {
+        throw new Error("MISSING_ROUTES_JS");
+    }
+    // -----------------------------------------------------------------
+    
     buildInternalData();
     initDetailMap(); 
     await locateNearestStopPromise();
     startTimer();
   } catch (err) {
-    document.getElementById('mainRouteList').innerHTML = '<div class="text-center" style="color:#ef4444;">Error building network.</div>';
     console.error(err);
+    const list = document.getElementById('mainRouteList');
+    
+    if (err.message === "MISSING_ROUTES_JS") {
+        list.innerHTML = `
+            <div class="text-center" style="color:#ef4444; padding-top:40px;">
+                <h3>⚠️ Data Missing</h3>
+                <p style="margin-top:10px; color:var(--text-sub);">
+                    <b>routes.js</b> failed to load. Please make sure the file is uploaded to GitHub and the deployment is finished.
+                </p>
+            </div>
+        `;
+    } else {
+        list.innerHTML = '<div class="text-center" style="color:#ef4444; padding-top:40px;">Error building network. Check console.</div>';
+    }
   }
 }
 
@@ -1408,9 +1432,6 @@ function setRegionFilter(region) {
     renderSearchResults();
 }
 
-// -----------------------------------------------------
-// Bug 1 Update: Safely list ALL matching routes on "All Networks"
-// -----------------------------------------------------
 function renderSearchResults() {
     const query = document.getElementById('searchInput').value.trim().toLowerCase();
     const listEl = document.getElementById('searchResults');
