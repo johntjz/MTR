@@ -688,26 +688,6 @@ function calculateLoadLRT(trains, index, train_length, currentRouteNo, currentHo
     return Math.min(95, Math.max(5, Math.round(loadFactor)));
 }
 
-function processTimeRaw(timeString, diffMsOffset) {
-    let apiM = 0;
-    let apiS = 0;
-    
-    if (timeString.includes(':')) {
-        const targetMs = new Date(timeString.replace(/-/g, '/')).getTime();
-        const apiDiffMs = Math.max(0, targetMs - Date.now() + diffMsOffset);
-        apiM = Math.floor(apiDiffMs / 60000);
-        apiS = Math.floor((apiDiffMs % 60000) / 1000);
-    } else {
-        apiM = parseInt(timeString) || 0;
-        apiS = Math.floor(Math.random() * 60); 
-    }
-    return {
-        minutes: apiM,
-        seconds: apiS,
-        str: apiM > 0 ? `${apiM}m ${apiS}s` : `${apiS}s`
-    };
-}
-
 
 // ==========================================
 // ZONE 3: DATA INITIALIZATION & API
@@ -811,7 +791,6 @@ async function fetchMtrEtaRaw(group, stopKey) {
             
             if(res && res.status === 1 && res.data && res.data[`${apiLineCode}-${stn.code}`]) {
                 let currTimeMs = res.data[`${apiLineCode}-${stn.code}`].curr_time ? new Date(res.data[`${apiLineCode}-${stn.code}`].curr_time.replace(/-/g, '/')).getTime() : Date.now();
-                let serverOffsetMs = Date.now() - currTimeMs; 
                 
                 const data = res.data[`${apiLineCode}-${stn.code}`];
                 const validDests = routeStopsCache[group.key].map(s => s.code);
@@ -830,24 +809,29 @@ async function fetchMtrEtaRaw(group, stopKey) {
                         const ttnt = parseInt(t.ttnt) || 0;
                         const load = calculateLoadHR(safeArray, i, stn.isTerminal, group.key, t.dest, currentIdx, currentHour);
                         
-                        let timeData = { minutes: ttnt, seconds: 0, str: t.time ? t.time.substring(11, 19) : '' }; 
-                        if (t.time) {
-                            timeData = processTimeRaw(t.time, serverOffsetMs);
+                        let targetAbsoluteMs = Date.now();
+                        let isScheduled = false;
+
+                        if (t.ttnt === "0" || t.ttnt === "-") {
+                            targetAbsoluteMs = Date.now() + 15000;
                         } else {
-                           timeData.seconds = Math.floor(Math.random() * 60); 
-                           timeData.str = ttnt > 0 ? `${ttnt}m ${timeData.seconds}s` : `${timeData.seconds}s`;
+                            let addSecs = 0;
+                            if (t.time && t.time.includes(':')) {
+                                const apiTime = new Date(t.time.replace(/-/g, '/')).getTime();
+                                addSecs = Math.floor((Math.max(0, apiTime - currTimeMs) % 60000) / 1000);
+                            } else {
+                                addSecs = Math.floor(Math.random() * 45); 
+                            }
+                            targetAbsoluteMs = Date.now() + (ttnt * 60000) + (addSecs * 1000);
                         }
 
                         results.push({
                             destName: `To ${destName}`,
-                            mins: timeData.minutes,
-                            sortTimeMs: timeData.minutes * 60000 + timeData.seconds * 1000,
-                            mainTimeText: (t.ttnt === "0" || t.ttnt === "-") ? 'Due' : `${timeData.minutes}m`,
-                            apiStr: timeData.str,
+                            targetAbsoluteMs: targetAbsoluteMs,
                             platText: `Plat ${t.plat}`,
                             loadFactor: load,
                             carInfo: null,
-                            isScheduled: false
+                            isScheduled: isScheduled
                         });
                     });
                 };
@@ -865,19 +849,17 @@ async function fetchMtrEtaRaw(group, stopKey) {
                         if (t.route_no.trim() !== targetRouteNo) return;
 
                         const timeStr = t.time_en ? t.time_en.trim().toLowerCase() : '';
-                        let timeData = { minutes: 99, seconds: 0, str: '-' };
+                        let targetAbsoluteMs = Date.now();
                         let isScheduled = false;
 
                         if (timeStr === '-' || timeStr === 'arriving') {
-                            timeData.minutes = 0;
-                            timeData.seconds = 0;
-                            timeData.str = 'Arriving';
+                            targetAbsoluteMs = Date.now() + 15000;
                         } else {
                             const m = timeStr.match(/\d+/);
                             if(m) { 
-                                timeData.minutes = parseInt(m[0], 10); 
-                                timeData.seconds = Math.floor(Math.random() * 60); 
-                                timeData.str = `${timeData.minutes}m ${timeData.seconds}s`; 
+                                const mins = parseInt(m[0], 10); 
+                                const secs = Math.floor(Math.random() * 60); 
+                                targetAbsoluteMs = Date.now() + (mins * 60000) + (secs * 1000);
                             }
                         }
                         
@@ -886,10 +868,7 @@ async function fetchMtrEtaRaw(group, stopKey) {
                         
                         results.push({
                             destName: `To ${t.dest_en}`,
-                            mins: timeData.minutes,
-                            sortTimeMs: timeData.minutes * 60000 + timeData.seconds * 1000,
-                            mainTimeText: (timeData.minutes === 0) ? 'Due' : `${timeData.minutes}m`,
-                            apiStr: timeData.str,
+                            targetAbsoluteMs: targetAbsoluteMs,
                             platText: `Plat ${plat.platform_id}`,
                             loadFactor: load,
                             carInfo: isTwoCar ? '2-Car' : '1-Car',
@@ -900,7 +879,7 @@ async function fetchMtrEtaRaw(group, stopKey) {
             }
         }
     } catch(e) { console.error(e); }
-    return results.sort((a,b) => a.sortTimeMs - b.sortTimeMs);
+    return results.sort((a,b) => a.targetAbsoluteMs - b.targetAbsoluteMs);
 }
 
 
@@ -954,8 +933,6 @@ function locateNearestStopPromise() {
     return new Promise((resolve) => {
         if (!navigator.geolocation) {
             document.getElementById('mainLocationText').innerText = 'GPS Not Supported';
-            
-            // Allow manual browsing if GPS is permanently blocked
             renderMainNearby(); 
             if (currentView === 'search') renderSearchResults();
             resolve(false); 
@@ -965,8 +942,6 @@ function locateNearestStopPromise() {
         
         const fallback = setTimeout(() => {
             document.getElementById('mainLocationText').innerText = 'Location Failed';
-            
-            // Allow manual browsing if GPS times out
             renderMainNearby(); 
             if (currentView === 'search') renderSearchResults();
             resolve(false);
@@ -999,8 +974,6 @@ function locateNearestStopPromise() {
         }, () => {
             clearTimeout(fallback);
             document.getElementById('mainLocationText').innerText = 'Location Unavailable';
-            
-            // Allow manual browsing if GPS is denied
             renderMainNearby(); 
             if (currentView === 'search') renderSearchResults();
             resolve(false);
@@ -1185,7 +1158,7 @@ function drawRouteOnMap(group) {
 }
 
 // ==========================================
-// ZONE 5: CORE APP LOGIC & STATE MUTATION
+// ZONE 5: LIVE UI UPDATERS & STATE
 // ==========================================
 function updateDetailTimestamp() {
     const el = document.getElementById('detailLastUpdated');
@@ -1194,6 +1167,37 @@ function updateDetailTimestamp() {
         const timeStr = now.toLocaleTimeString('en-HK', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
         el.innerText = `Updated ${timeStr}`;
     }
+}
+
+function updateLiveCountdowns() {
+    document.querySelectorAll('.live-countdown').forEach(el => {
+        const targetMs = parseInt(el.getAttribute('data-target'));
+        const diffMs = Math.max(0, targetMs - Date.now());
+        const m = Math.floor(diffMs / 60000);
+        const s = Math.floor((diffMs % 60000) / 1000);
+        
+        const mainTimeEl = el.querySelector('.main-time');
+        if (!mainTimeEl) return;
+        
+        if (m === 0 && s <= 30) {
+            mainTimeEl.innerHTML = 'Due';
+        } else {
+            mainTimeEl.innerHTML = `${m}m <span style="font-size:1.1rem; opacity:0.9; margin-left:1px;">${s}s</span>`;
+        }
+    });
+
+    document.querySelectorAll('.live-summary').forEach(el => {
+        const targetMs = parseInt(el.getAttribute('data-target'));
+        const diffMs = Math.max(0, targetMs - Date.now());
+        const m = Math.floor(diffMs / 60000);
+        const s = Math.floor((diffMs % 60000) / 1000);
+        
+        if (m === 0 && s <= 30) {
+            el.innerHTML = 'Due';
+        } else {
+            el.innerHTML = `${m}<span style="font-size:1.1rem; margin-left:2px;">m</span>`; 
+        }
+    });
 }
 
 async function initApp() {
@@ -1206,43 +1210,6 @@ async function initApp() {
     document.getElementById('mainRouteList').innerHTML = '<div class="text-center" style="color:#ef4444;">Error building network.</div>';
     console.error(err);
   }
-}
-
-function getNearbyRoutes(maxDistanceKm = 3.5, targetNetwork = 'ALL') {
-    if (!lastKnownPos || allStops.length === 0) return [];
-
-    let eligibleStops = allStops;
-    if (targetNetwork !== 'ALL') {
-        eligibleStops = allStops.filter(s => s.network === targetNetwork);
-    }
-
-    if (eligibleStops.length === 0) return [];
-
-    const stopsWithDist = eligibleStops.map(s => {
-        const dist = calculateDistanceKm(lastKnownPos.lat, lastKnownPos.lon, parseFloat(s.latitude), parseFloat(s.longitude));
-        return { stop: s, dist };
-    }).sort((a, b) => a.dist - b.dist);
-
-    if (stopsWithDist.length === 0) return [];
-
-    let candidates = stopsWithDist.filter(item => item.dist <= maxDistanceKm);
-    if (candidates.length === 0) candidates = stopsWithDist.slice(0, 3); 
-
-    const seenGroupKeys = new Set();
-    const result = [];
-    candidates.forEach(item => {
-        item.stop.routes.forEach(rk => {
-            if (!seenGroupKeys.has(rk)) {
-                seenGroupKeys.add(rk);
-                const g = groupedRoutes.find(r => r.key === rk);
-                if (g && (targetNetwork === 'ALL' || g.network === targetNetwork)) {
-                    result.push({ ...g, nearestDistKm: item.dist, nearestStopName: item.stop.stopName_e });
-                }
-            }
-        });
-    });
-
-    return result.sort((a, b) => a.nearestDistKm - b.nearestDistKm);
 }
 
 // ==========================================
@@ -1348,22 +1315,22 @@ function openMapSheet(stopObj) {
     
     Promise.all(relevantGroups.map(async g => {
         const arrs = await fetchMtrEtaRaw(g, stopObj.stopKey);
-        let firstEtaMins = Infinity;
-        if (arrs.length > 0) firstEtaMins = arrs[0].mins;
-        return { group: g, arrs, firstEtaMins };
+        let firstEtaTargetMs = Infinity;
+        if (arrs.length > 0) firstEtaTargetMs = arrs[0].targetAbsoluteMs;
+        return { group: g, arrs, firstEtaTargetMs };
     })).then(groupsWithEtas => {
-        groupsWithEtas.sort((a, b) => a.firstEtaMins - b.firstEtaMins);
+        groupsWithEtas.sort((a, b) => a.firstEtaTargetMs - b.firstEtaTargetMs);
         let html = '';
         groupsWithEtas.forEach(item => {
             const g = item.group;
             const arrs = item.arrs;
-            const mins = item.firstEtaMins;
+            const targetMs = item.firstEtaTargetMs;
             let summaryHtml = '';
             let itemClass = '';
             
-            if (mins !== Infinity) {
-                let timeHtml = mins === 0 ? 'Due' : `${mins}<span style="font-size:1rem; margin-left:2px;">m</span>`;
-                summaryHtml = `<div class="eta-time">${timeHtml}</div>`;
+            if (targetMs !== Infinity) {
+                let colorClass = arrs[0].isScheduled ? 'var(--accent-orange)' : 'var(--accent-green)';
+                summaryHtml = `<div class="eta-time live-summary" data-target="${targetMs}" style="color:${colorClass}">--</div>`;
             } else {
                 summaryHtml = `<div class="eta-time" style="color:var(--text-sub)">--</div>`;
                 itemClass = 'inactive-route';
@@ -1382,6 +1349,7 @@ function openMapSheet(stopObj) {
             `;
         });
         listEl.innerHTML = html || '<div class="text-center">No lines active at this station</div>';
+        updateLiveCountdowns();
     });
 }
 
@@ -1410,6 +1378,7 @@ async function toggleSheetEta(groupKey, stopKey) {
         if(group) {
             const arrs = await fetchMtrEtaRaw(group, stopKey);
             expandContainer.innerHTML = generateExpandedETAsHtml(arrs);
+            updateLiveCountdowns();
         }
     }
 }
@@ -1437,22 +1406,22 @@ async function renderMainNearby(isSilentRefresh = false) {
 
     let groupsWithEtas = await Promise.all(relevantGroups.map(async g => {
         const arrs = await fetchMtrEtaRaw(g, currentNearestStopKey);
-        let firstEtaMins = arrs.length > 0 ? arrs[0].mins : Infinity;
-        return { group: g, arrs, firstEtaMins };
+        let firstEtaTargetMs = arrs.length > 0 ? arrs[0].targetAbsoluteMs : Infinity;
+        return { group: g, arrs, firstEtaTargetMs };
     }));
 
-    groupsWithEtas.sort((a, b) => a.firstEtaMins - b.firstEtaMins);
+    groupsWithEtas.sort((a, b) => a.firstEtaTargetMs - b.firstEtaTargetMs);
     let html = '';
     groupsWithEtas.forEach(item => {
         const g = item.group;
         const arrs = item.arrs;
-        const mins = item.firstEtaMins;
+        const targetMs = item.firstEtaTargetMs;
         let summaryHtml = '';
         let itemClass = '';
         
-        if (mins !== Infinity) {
-            let timeHtml = mins === 0 ? 'Due' : `${mins}<span style="font-size:1rem; margin-left:2px;">m</span>`;
-            summaryHtml = `<div class="eta-time">${timeHtml}</div>`;
+        if (targetMs !== Infinity) {
+            let colorClass = arrs[0].isScheduled ? 'var(--accent-orange)' : 'var(--accent-green)';
+            summaryHtml = `<div class="eta-time live-summary" data-target="${targetMs}" style="color:${colorClass}">--</div>`;
         } else {
             summaryHtml = `<div class="eta-time" style="color:var(--text-sub)">--</div>`;
             itemClass = 'inactive-route';
@@ -1476,6 +1445,7 @@ async function renderMainNearby(isSilentRefresh = false) {
         html += `</div>`;
     });
     listEl.innerHTML = html || '<div class="text-center">No service found for this station.</div>';
+    updateLiveCountdowns();
 }
 
 async function toggleMainEta(groupKey) {
@@ -1496,6 +1466,7 @@ async function toggleMainEta(groupKey) {
         if(group && currentNearestStopKey) {
             const arrs = await fetchMtrEtaRaw(group, currentNearestStopKey);
             expandContainer.innerHTML = generateExpandedETAsHtml(arrs);
+            updateLiveCountdowns();
         }
     }
 }
@@ -1528,9 +1499,8 @@ function generateExpandedETAsHtml(arrs) {
                         ${badgesHtml}
                     </div>
                 </div>
-                <div class="eta-row-time" style="display:flex; flex-direction:column; align-items:flex-end; line-height:1.1;">
-                    <div style="color:${color};">${arr.mainTimeText}</div>
-                    <div style="font-size:0.75rem; font-weight:700; color:var(--text-sub); margin-top:4px;">Official: ${arr.apiStr}</div>
+                <div class="eta-row-time live-countdown" data-target="${arr.targetAbsoluteMs}" style="display:flex; flex-direction:column; align-items:flex-end; line-height:1.1;">
+                    <div class="main-time" style="color:${color}; font-size:1.8rem; font-weight:900; font-variant-numeric:tabular-nums;">--</div>
                 </div>
             </div>
         `;
@@ -1553,7 +1523,6 @@ function renderSearchResults() {
         if (activeRegionFilter === 'ALL') {
             let nearby = getNearbyRoutes(2.5, 'ALL');
             
-            // Render the full list if GPS is blocked or unavailable
             if (!lastKnownPos && nearby.length === 0) {
                 let matches = groupedRoutes;
                 let html = `
@@ -1754,6 +1723,7 @@ async function expandStop(idx, forceOpen = false) {
         if (detailExpandedStopIdx !== idx) return; 
         expandContainer.innerHTML = generateExpandedETAsHtml(arrs);
         updateDetailTimestamp();
+        updateLiveCountdowns();
     } catch (e) {
         expandContainer.innerHTML = '<div style="color:#ef4444; text-align:center; padding: 20px;">Network Failed</div>';
     }
@@ -1765,6 +1735,9 @@ function startTimer() {
   document.getElementById('refreshTimerMain').innerText = `${countdown}s`;
   
   timerInterval = setInterval(() => {
+    
+    updateLiveCountdowns();
+
     if (isSyncing) return;
     countdown--;
     if (countdown <= 0) {
@@ -1779,7 +1752,10 @@ function startTimer() {
           const targetStop = stops[detailExpandedStopIdx];
           fetchMtrEtaRaw(detailRouteGroup, targetStop.stopKey).then(arrs => {
               const expandContainer = document.getElementById(`detail-eta-expanded-${detailExpandedStopIdx}`);
-              if(expandContainer) expandContainer.innerHTML = generateExpandedETAsHtml(arrs);
+              if(expandContainer) {
+                  expandContainer.innerHTML = generateExpandedETAsHtml(arrs);
+                  updateLiveCountdowns();
+              }
               updateDetailTimestamp();
               isSyncing = false;
           }).catch(() => { isSyncing = false; });
@@ -1788,7 +1764,10 @@ function startTimer() {
           if(group && currentNearestStopKey) {
               fetchMtrEtaRaw(group, currentNearestStopKey).then(arrs => {
                  const expandContainer = document.getElementById(`sheet-eta-expanded-${sheetExpandedGroupKey}`);
-                 if (expandContainer) expandContainer.innerHTML = generateExpandedETAsHtml(arrs);
+                 if (expandContainer) {
+                     expandContainer.innerHTML = generateExpandedETAsHtml(arrs);
+                     updateLiveCountdowns();
+                 }
                  isSyncing = false;
               }).catch(() => { isSyncing = false; });
           } else { isSyncing = false; }
