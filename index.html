@@ -1436,25 +1436,77 @@ function renderSearchResults() {
     const query = document.getElementById('searchInput').value.trim().toLowerCase();
     const listEl = document.getElementById('searchResults');
     
-    if (!query) {
-        if (activeRegionFilter === 'ALL') {
-            let matches = groupedRoutes;
-            let html = `
-                <div style="padding: 12px 16px; font-size: 0.85rem; font-weight: 800; color: var(--text-sub); text-transform: uppercase; background: var(--bg-white); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 5;">
-                    <span>🚆 ALL LINES</span>
-                    <span style="color: var(--accent-blue); font-size: 0.8rem; flex-shrink: 0;">${matches.length} LINES</span>
-                </div>
-            `;
-            matches.forEach(g => {
-                html += `
-                  <div class="route-list-item" onclick="openRouteDetail('${g.key}')">
-                      <div class="route-no-col" style="background-color:${g.colorHex};">${g.routeNo}</div>
-                      <div class="route-info-col"><div class="route-dest">${g.dest_e}</div><div class="route-sub">${g.company}</div></div>
-                  </div>
-                `;
+    // Start with all routes
+    let matches = groupedRoutes;
+
+    // 1. Filter by Region (All, HR, LRT)
+    if (activeRegionFilter !== 'ALL') {
+        matches = matches.filter(g => g.network === activeRegionFilter);
+    }
+
+    // 2. Filter by Search Query
+    if (query) {
+        matches = matches.filter(g => g.routeNo.toLowerCase().includes(query) || g.dest_e.toLowerCase().includes(query));
+    }
+    
+    // Fallback if no lines match
+    if (matches.length === 0) {
+        listEl.innerHTML = '<div class="text-center" style="padding-top:60px; font-size:4rem; opacity:0.2;">🚆</div><div class="text-center">No lines found</div>';
+        return;
+    }
+
+    // 3. Sort by Distance to Nearest Stop (if GPS is active)
+    let isSortedByDistance = false;
+    if (lastKnownPos) {
+        matches = matches.map(g => {
+            const stops = routeStopsCache[g.key] || [];
+            let minDistance = Infinity;
+            stops.forEach(s => {
+                const d = calculateDistanceKm(lastKnownPos.lat, lastKnownPos.lon, parseFloat(s.latitude), parseFloat(s.longitude));
+                if (d < minDistance) minDistance = d;
             });
-            listEl.innerHTML = html;
-        } else {
+            return { ...g, minDistance }; // Create a shallow copy with the distance attached
+        }).sort((a, b) => a.minDistance - b.minDistance);
+        isSortedByDistance = true;
+    }
+
+    // 4. Build Header Label
+    let title = 'ALL LINES';
+    if (activeRegionFilter === 'HR') title = 'ALL HEAVY RAIL LINES';
+    else if (activeRegionFilter === 'LRT') title = 'ALL LIGHT RAIL ROUTES';
+    
+    if (query) title = 'SEARCH RESULTS';
+
+    let headerLabel = (isSortedByDistance && !query) ? `📍 NEAREST (${title})` : `🚆 ${title}`;
+
+    // 5. Render HTML
+    let html = `
+        <div style="padding: 12px 16px; font-size: 0.85rem; font-weight: 800; color: var(--text-sub); text-transform: uppercase; background: var(--bg-white); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 5;">
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 75%;">${headerLabel}</span>
+            <span style="color: var(--accent-blue); font-size: 0.8rem; flex-shrink: 0;">${matches.length} LINES</span>
+        </div>
+    `;
+    
+    matches.forEach(g => {
+        // Create distance badge if sorted
+        let distanceTag = '';
+        if (isSortedByDistance && g.minDistance !== Infinity) {
+            distanceTag = `<span style="display:inline-block; margin-left:8px; padding:2px 6px; border-radius:6px; font-size:0.65rem; background:rgba(10,132,255,0.15); color:var(--accent-blue); border:1px solid rgba(10,132,255,0.3); vertical-align:middle;">${g.minDistance.toFixed(1)} km</span>`;
+        }
+
+        html += `
+          <div class="route-list-item" onclick="openRouteDetail('${g.key}')">
+              <div class="route-no-col" style="background-color:${g.colorHex};">${g.routeNo}</div>
+              <div class="route-info-col">
+                  <div class="route-dest">${g.dest_e}</div>
+                  <div class="route-sub">${g.company} ${distanceTag}</div>
+              </div>
+          </div>
+        `;
+    });
+    
+    listEl.innerHTML = html;
+}else {
             let matches = groupedRoutes.filter(g => g.network === activeRegionFilter);
             let title = activeRegionFilter === 'HR' ? 'ALL HEAVY RAIL LINES' : 'ALL LIGHT RAIL ROUTES';
             
