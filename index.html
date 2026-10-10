@@ -1506,49 +1506,6 @@ function renderSearchResults() {
     });
     
     listEl.innerHTML = html;
-}else {
-            let matches = groupedRoutes.filter(g => g.network === activeRegionFilter);
-            let title = activeRegionFilter === 'HR' ? 'ALL HEAVY RAIL LINES' : 'ALL LIGHT RAIL ROUTES';
-            
-            let html = `
-                <div style="padding: 12px 16px; font-size: 0.85rem; font-weight: 800; color: var(--text-sub); text-transform: uppercase; background: var(--bg-white); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 5;">
-                    <span>🚆 ${title}</span>
-                    <span style="color: var(--accent-blue); font-size: 0.8rem; flex-shrink: 0;">${matches.length} LINES</span>
-                </div>
-            `;
-            
-            matches.forEach(g => {
-                html += `
-                  <div class="route-list-item" onclick="openRouteDetail('${g.key}')">
-                      <div class="route-no-col" style="background-color:${g.colorHex};">${g.routeNo}</div>
-                      <div class="route-info-col"><div class="route-dest">${g.dest_e}</div><div class="route-sub">${g.company}</div></div>
-                  </div>
-                `;
-            });
-            listEl.innerHTML = html;
-        }
-        return;
-    }
-
-    let matches = groupedRoutes;
-    if (activeRegionFilter !== 'ALL') matches = matches.filter(g => g.network === activeRegionFilter);
-    matches = matches.filter(g => g.routeNo.toLowerCase().includes(query) || g.dest_e.toLowerCase().includes(query));
-    
-    if(matches.length === 0) {
-        listEl.innerHTML = '<div class="text-center" style="padding-top:60px; font-size:4rem; opacity:0.2;">🚆</div><div class="text-center">No lines found</div>';
-        return;
-    }
-    
-    let html = '';
-    matches.forEach(g => {
-        html += `
-          <div class="route-list-item" onclick="openRouteDetail('${g.key}')">
-              <div class="route-no-col" style="background-color:${g.colorHex};">${g.routeNo}</div>
-              <div class="route-info-col"><div class="route-dest">${g.dest_e}</div><div class="route-sub">${g.company}</div></div>
-          </div>
-        `;
-    });
-    listEl.innerHTML = html;
 }
 
 function renderFavList() {
