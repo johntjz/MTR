@@ -67,7 +67,6 @@
     color: white; font-size: 1.05rem; font-weight: 800; cursor: pointer; padding: 0; z-index: 2;
   }
 
-  /* --- NEW: App Switcher Bar --- */
   .app-switcher {
     background: var(--bg-white);
     border-bottom: 1px solid var(--border-color);
@@ -95,12 +94,11 @@
   .app-switcher-item.active {
     color: var(--theme-color);
     border-bottom: 2px solid var(--theme-color);
-    background: rgba(5, 150, 105, 0.05); /* Soft emerald background */
+    background: rgba(5, 150, 105, 0.05);
   }
   .app-switcher-item:active:not(.active) {
     background: var(--bg-light);
   }
-  /* ------------------------------ */
 
   .view-container {
     flex: 1; overflow-y: auto; overflow-x: hidden; position: relative;
@@ -359,6 +357,7 @@ let allStops = [];
 let groupedRoutes = []; 
 let routeStopsCache = {};
 let favRoutes = JSON.parse(localStorage.getItem('mtr_fav_routes_v5') || '[]');
+const realRouteCache = JSON.parse(localStorage.getItem('pulse_hk_real_routes') || '{}');
 
 let lastKnownPos = null;
 let currentNearestStopKey = null;
@@ -509,6 +508,54 @@ function calculateLoadLRT(trains, index, train_length, currentRouteNo, currentHo
     
     let loadFactor = baseLoad * gapMultiplier + (Math.random() * 6 - 3); 
     return Math.min(95, Math.max(5, Math.round(loadFactor)));
+}
+
+// -----------------------------------------------------
+// Req 2: Fetch Physical Route Geometry from OpenStreetMap
+// -----------------------------------------------------
+async function getRealRouteGeometry(group) {
+    if (realRouteCache[group.key]) return realRouteCache[group.key];
+
+    let lineName = group.dest_e; // 'dest_e' holds the physical line name via LINE_META mapping
+    if (lineName.includes('East Rail Line')) lineName = 'East Rail Line';
+    if (lineName.includes('Tseung Kwan O Line')) lineName = 'Tseung Kwan O Line';
+
+    let query = '';
+    if (group.network === 'HR') {
+        // Query both name:en and name just in case OSM tags vary.
+        query = `[out:json][timeout:15];(relation["route"~"subway|train|railway"]["name:en"~"${lineName}"];relation["route"~"subway|train|railway"]["name"~"${lineName}"]);out geom;`;
+    } else {
+        query = `[out:json][timeout:15];relation["route"="light_rail"]["ref"="${group.routeNo}"];out geom;`;
+    }
+
+    const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+    
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        let ways = [];
+        
+        if (data && data.elements) {
+            data.elements.forEach(el => {
+                if (el.type === 'relation' && el.members) {
+                    el.members.forEach(m => {
+                        if (m.type === 'way' && m.geometry) {
+                            ways.push(m.geometry.map(pt => [pt.lat, pt.lon]));
+                        }
+                    });
+                }
+            });
+        }
+        
+        if (ways.length > 0) {
+            realRouteCache[group.key] = ways;
+            try { localStorage.setItem('pulse_hk_real_routes', JSON.stringify(realRouteCache)); } catch(e) {}
+            return ways;
+        }
+    } catch(e) { 
+        console.warn('Failed to fetch actual geographic route path from OSM:', e); 
+    }
+    return null; 
 }
 
 
@@ -953,17 +1000,24 @@ function renderGlobalMapStops() {
     });
 }
 
-function drawRouteOnMap(group) {
+// -----------------------------------------------------
+// Req 2 Update: Draw Real Paths Dynamically
+// -----------------------------------------------------
+async function drawRouteOnMap(group) {
     if(!mapInstance) return;
-    if(mapRouteLayer) mapInstance.removeLayer(mapRouteLayer);
+    
+    if(mapRouteLayer) { 
+        mapInstance.removeLayer(mapRouteLayer); 
+        mapRouteLayer = null; 
+    }
+    
     mapMarkers.forEach(m => mapInstance.removeLayer(m));
     mapMarkers = [];
     
     const stops = routeStopsCache[group.key] || [];
     if(stops.length === 0) return;
     
-    const latlngs = stops.map(s => [parseFloat(s.latitude), parseFloat(s.longitude)]);
-    mapRouteLayer = L.polyline(latlngs, {color: group.colorHex, weight: 6, opacity: 0.9}).addTo(mapInstance);
+    // 1. Draw station dots instantly
     const stopIcon = L.divIcon({ className: 'custom-stop-icon', html: '<div style="width:14px;height:14px;background:white;border:3px solid #333;border-radius:50%;"></div>', iconSize: [14, 14] });
     
     stops.forEach((s, idx) => {
@@ -975,9 +1029,25 @@ function drawRouteOnMap(group) {
         mapMarkers.push(marker);
     });
     
-    const bounds = mapRouteLayer.getBounds();
+    // 2. Draw temporary dotted straight lines (so map isn't blank while fetching real paths)
+    const latlngs = stops.map(s => [parseFloat(s.latitude), parseFloat(s.longitude)]);
+    let fallbackLayer = L.polyline(latlngs, {color: group.colorHex, weight: 6, opacity: 0.4, dashArray: '10, 10'}).addTo(mapInstance);
+    
+    const bounds = fallbackLayer.getBounds();
     if(userMarkerDetail && lastKnownPos) { bounds.extend(userMarkerDetail.getLatLng()); }
     mapInstance.fitBounds(bounds, { padding: [40, 40] });
+
+    // 3. Fetch real physical track paths and replace the dotted line
+    const realWays = await getRealRouteGeometry(group);
+    
+    if (realWays && realWays.length > 0) {
+        mapInstance.removeLayer(fallbackLayer);
+        mapRouteLayer = L.polyline(realWays, {color: group.colorHex, weight: 6, opacity: 0.9, lineJoin: 'round', lineCap: 'round'}).addTo(mapInstance);
+    } else {
+        // If API fails or rate-limits, convert dotted fallback to solid fallback seamlessly
+        mapInstance.removeLayer(fallbackLayer);
+        mapRouteLayer = L.polyline(latlngs, {color: group.colorHex, weight: 6, opacity: 0.9, lineJoin: 'round'}).addTo(mapInstance);
+    }
 }
 
 // ==========================================
@@ -1338,45 +1408,23 @@ function setRegionFilter(region) {
     renderSearchResults();
 }
 
+// -----------------------------------------------------
+// Bug 1 Update: Safely list ALL matching routes on "All Networks"
+// -----------------------------------------------------
 function renderSearchResults() {
     const query = document.getElementById('searchInput').value.trim().toLowerCase();
     const listEl = document.getElementById('searchResults');
     
     if (!query) {
         if (activeRegionFilter === 'ALL') {
-            let nearby = getNearbyRoutes(2.5, 'ALL');
-            
-            if (!lastKnownPos && nearby.length === 0) {
-                let matches = groupedRoutes;
-                let html = `
-                    <div style="padding: 12px 16px; font-size: 0.85rem; font-weight: 800; color: var(--text-sub); text-transform: uppercase; background: var(--bg-white); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 5;">
-                        <span>🚆 ALL LINES</span>
-                        <span style="color: var(--accent-blue); font-size: 0.8rem; flex-shrink: 0;">${matches.length} LINES</span>
-                    </div>
-                `;
-                
-                matches.forEach(g => {
-                    html += `
-                      <div class="route-list-item" onclick="openRouteDetail('${g.key}')">
-                          <div class="route-no-col" style="background-color:${g.colorHex};">${g.routeNo}</div>
-                          <div class="route-info-col"><div class="route-dest">${g.dest_e}</div><div class="route-sub">${g.company}</div></div>
-                      </div>
-                    `;
-                });
-                listEl.innerHTML = html;
-                return;
-            }
-
-            const firstValid = nearby.find(g => g.nearestDistKm !== undefined && !isNaN(g.nearestDistKm));
-            const headerLabel = firstValid ? `${firstValid.nearestStopName} (${firstValid.nearestDistKm.toFixed(1)}km)` : 'Nearby Lines';
-
+            let matches = groupedRoutes;
             let html = `
                 <div style="padding: 12px 16px; font-size: 0.85rem; font-weight: 800; color: var(--text-sub); text-transform: uppercase; background: var(--bg-white); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 5;">
-                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 75%;">📍 Nearest (${headerLabel})</span>
-                    <span style="color: var(--accent-blue); font-size: 0.8rem; flex-shrink: 0;">${nearby.length} LINES</span>
+                    <span>🚆 ALL LINES</span>
+                    <span style="color: var(--accent-blue); font-size: 0.8rem; flex-shrink: 0;">${matches.length} LINES</span>
                 </div>
             `;
-            nearby.forEach(g => {
+            matches.forEach(g => {
                 html += `
                   <div class="route-list-item" onclick="openRouteDetail('${g.key}')">
                       <div class="route-no-col" style="background-color:${g.colorHex};">${g.routeNo}</div>
