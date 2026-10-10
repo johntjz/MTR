@@ -203,7 +203,6 @@
                 twoCar: "2-Car",
                 to: "To",
                 
-                // Strict 3-Tier System
                 loadHasSeats: "Seating available",
                 loadStanding: "Standing",
                 loadCrowdedStanding: "Crowded standing",
@@ -241,7 +240,6 @@
                 twoCar: "2卡",
                 to: "往",
                 
-                // Strict 3-Tier System
                 loadHasSeats: "有座",
                 loadStanding: "企位",
                 loadCrowdedStanding: "人多企位",
@@ -279,7 +277,6 @@
                 twoCar: "2卡",
                 to: "往",
                 
-                // Strict 3-Tier System
                 loadHasSeats: "有座",
                 loadStanding: "站位",
                 loadCrowdedStanding: "人多站位",
@@ -478,7 +475,7 @@
             { key: 'KAT', line: 'TML', code: 'KAT', name: { en: 'Kai Tak', tc: '啟德', sc: '启德' }, lat: 22.3323, lng: 114.1966, isTerminal: false },
             { key: 'SUW', line: 'TML', code: 'SUW', name: { en: 'Sung Wong Toi', tc: '宋皇臺', sc: '宋皇台' }, lat: 22.3275, lng: 114.1906, isTerminal: false },
             { key: 'TKW', line: 'TML', code: 'TKW', name: { en: 'To Kwa Wan', tc: '土瓜灣', sc: '土瓜湾' }, lat: 22.3168, lng: 114.1887, isTerminal: false },
-            { key: 'HOM', line: 'TML', code: 'HOM', name: { en: '何文田', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
+            { key: 'HOM', line: 'TML', code: 'HOM', name: { en: 'Ho Man Tin', tc: '何文田', sc: '何文田' }, lat: 22.3093, lng: 114.1827, isTerminal: false },
             { key: 'HUH', line: 'TML', code: 'HUH', name: { en: 'Hung Hom', tc: '紅磡', sc: '红磡' }, lat: 22.3031, lng: 114.1818, isTerminal: false },
             { key: 'ETS', line: 'TML', code: 'ETS', name: { en: 'East Tsim Sha Tsui', tc: '尖東', sc: '尖东' }, lat: 22.2963, lng: 114.1748, isTerminal: false },
             { key: 'AUS', line: 'TML', code: 'AUS', name: { en: 'Austin', tc: '柯士甸', sc: '柯士甸' }, lat: 22.3045, lng: 114.1661, isTerminal: false },
@@ -689,7 +686,7 @@
             if (length === 2) baseLoad = baseLoad * 0.8; 
 
             let t1 = 0;
-            const t1_str = trains[index].time_en;
+            const t1_str = trains[index].time_en ? trains[index].time_en.trim().toLowerCase() : '';
             if (t1_str === '-' || t1_str === 'arriving') t1 = 0;
             else t1 = parseInt(t1_str) || 0;
             
@@ -703,7 +700,7 @@
 
             let t2 = t1 + 8; 
             if (nextTrain) {
-                const next_t = nextTrain.time_en;
+                const next_t = nextTrain.time_en ? nextTrain.time_en.trim().toLowerCase() : '';
                 if (next_t === '-' || next_t === 'arriving') t2 = 0;
                 else t2 = parseInt(next_t) || (t1 + 8);
             }
@@ -1129,9 +1126,14 @@
                                 sortedRoutes.forEach(routeNo => {
                                     const routeTitle = `${t.routePre}${routeNo}`;
                                     const sortedTrains = trainsByRoute[routeNo].sort((a, b) => {
-                                        let aMins = a.time_en.includes('min') ? parseInt(a.time_en) : (a.time_en === 'arriving' ? 0 : 99);
-                                        let bMins = b.time_en.includes('min') ? parseInt(b.time_en) : (b.time_en === 'arriving' ? 0 : 99);
-                                        return aMins - bMins;
+                                        const parseMinutes = (item) => {
+                                            if (!item || !item.time_en) return 99;
+                                            const str = item.time_en.trim().toLowerCase();
+                                            if (str === '-' || str === 'arriving') return 0;
+                                            const match = str.match(/\d+/);
+                                            return match ? parseInt(match[0], 10) : 99;
+                                        };
+                                        return parseMinutes(a) - parseMinutes(b);
                                     });
                                     newHtml += generatePlatformHtml(meta, routeTitle, 'ph-navigation-arrow', sortedTrains, result.stn.isTerminal, 'LRT_ROUTE');
                                 });
@@ -1186,13 +1188,17 @@
                     } else {
                         let rawDestName = train.dest_en;
                         if (currentLang === 'tc') rawDestName = train.dest_ch || train.dest_en;
-                        else if (currentLang === 'sc') rawDestName = tcToSc(train.dest_ch || train.dest_en);
+                        else if (currentLang === 'sc') rawDestName = (typeof tcToSc === 'function' ? tcToSc(train.dest_ch || train.dest_en) : (train.dest_ch || train.dest_en));
 
                         destName = type === 'LRT_ROUTE' ? rawDestName : `${train.route_no}${rawDestName}`;
 
-                        if (train.time_en === "-") minText = t.departing;
-                        else if (train.time_en === "arriving") minText = t.arriving;
-                        else minText = train.time_en ? train.time_en.replace('min', t.min) : '-';
+                        // MTR Open Data: "-" indicates train is at/entering platform
+                        const timeStr = train.time_en ? train.time_en.trim().toLowerCase() : '';
+                        if (timeStr === "-" || timeStr === "arriving") {
+                            minText = t.arriving;
+                        } else {
+                            minText = train.time_en ? train.time_en.replace('min', t.min) : '-';
+                        }
 
                         if (type === 'LRT_ROUTE') {
                             platText = `<span class="text-white">${t.platformBrief}${train.platform_id}</span>`;
