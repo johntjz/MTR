@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
 <title>Pulse HK - Transit Network</title>
 
-<!-- Leaflet CSS via CDN -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<!-- Local Leaflet CSS -->
+<link rel="stylesheet" href="leaflet.css">
 
 <style>
   /* ==========================================
@@ -27,6 +27,11 @@
   
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
   
+  /* 3-Tier Text Scaling */
+  html { font-size: 16px; transition: font-size 0.2s ease-in-out; }
+  html.text-sm { font-size: 14px; } 
+  html.text-xs { font-size: 12px; } 
+
   body {
     background-color: var(--bg-light);
     color: var(--text-main);
@@ -55,6 +60,11 @@
     position: absolute; left: 4px; top: 0; bottom: 0; width: 44px; display: none;
     align-items: center; justify-content: center; background: none; border: none;
     color: white; font-size: 2.2rem; font-weight: bold; cursor: pointer; padding: 0; z-index: 2; line-height: 1;
+  }
+  .text-size-btn {
+    position: absolute; right: 4px; top: 0; bottom: 0; width: 44px; display: flex;
+    align-items: center; justify-content: center; background: none; border: none;
+    color: white; font-size: 1.05rem; font-weight: 800; cursor: pointer; padding: 0; z-index: 2;
   }
   .view-container {
     flex: 1; overflow-y: auto; overflow-x: hidden; position: relative;
@@ -132,7 +142,7 @@
   .region-btn { flex: 0 0 auto; padding: 12px 18px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-light); color: var(--text-sub); font-size: 0.9rem; font-weight: 800; cursor: pointer; text-transform: uppercase; }
   .region-btn.active { background: var(--theme-color); color: white; border-color: var(--theme-color); }
 
-  #map-container { height: 35vh; width: 100%; background: #111; flex-shrink: 0; border-bottom: 1px solid var(--border-color); }
+  #map-container { height: 35vh; width: 100%; background: #111; flex-shrink: 0; border-bottom: 1px solid var(--border-color); transition: height 0.35s cubic-bezier(0.25, 0.8, 0.25, 1); }
   #stop-list-container { flex: 1; overflow-y: auto; position: relative; background: var(--bg-light); }
   
   .stop-item { position: relative; padding: 20px 16px 20px 50px; border-bottom: 1px solid var(--border-color); cursor: pointer; }
@@ -196,6 +206,7 @@
 <header class="header">
   <button class="back-btn" id="backBtn" onclick="navigateBack()">‹</button>
   <h1 id="headerTitle">Pulse HK</h1>
+  <button class="text-size-btn" onclick="toggleTextSize()">aA</button>
 </header>
 
 <!-- Nearby View -->
@@ -286,8 +297,8 @@
     </div>
 </div>
 
-<!-- Leaflet JS via CDN -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- Local Leaflet JS -->
+<script src="leaflet.js"></script>
 
 <script>
 // ==========================================
@@ -295,6 +306,7 @@
 // ==========================================
 
 const LINE_META = {
+    // Heavy Rail & Splits
     'AEL': { network: 'HR', apiCode: 'AEL', name: 'Airport Express', colorHex: '#14b8a6' },
     'TCL': { network: 'HR', apiCode: 'TCL', name: 'Tung Chung Line', colorHex: '#f97316' },
     'TML': { network: 'HR', apiCode: 'TML', name: 'Tuen Ma Line', colorHex: '#b45309' },
@@ -523,7 +535,7 @@ let previousView = 'main';
 let allStops = [];
 let groupedRoutes = []; 
 let routeStopsCache = {};
-let favRoutes = JSON.parse(localStorage.getItem('mtr_fav_routes_v4') || '[]');
+let favRoutes = JSON.parse(localStorage.getItem('mtr_fav_routes_v5') || '[]');
 
 let lastKnownPos = null;
 let currentNearestStopKey = null;
@@ -549,7 +561,22 @@ const REFRESH_INTERVAL = 15;
 let countdown = REFRESH_INTERVAL;
 let timerInterval = null;
 let isSyncing = false;
+let gpsWatcherId = null;
 const requestCache = new Map();
+
+// Initialize Text Size (0: Normal, 1: Small, 2: Extra Small)
+let textSizeState = parseInt(localStorage.getItem('pulse_hk_text_size_state') || '0');
+if (textSizeState === 1) document.documentElement.classList.add('text-sm');
+if (textSizeState === 2) document.documentElement.classList.add('text-xs');
+
+function toggleTextSize() {
+    textSizeState = (textSizeState + 1) % 3;
+    localStorage.setItem('pulse_hk_text_size_state', textSizeState.toString());
+    document.documentElement.classList.remove('text-sm', 'text-xs');
+    if (textSizeState === 1) document.documentElement.classList.add('text-sm');
+    if (textSizeState === 2) document.documentElement.classList.add('text-xs');
+}
+
 
 // ==========================================
 // ZONE 2: ALGORITHMS & DYNAMIC LOAD LOGIC
@@ -575,12 +602,12 @@ function findNearestStopIdx(stops, pos) {
 
 function getExpectedHeadway(lineCode, hour) {
     const isPeak = (hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19);
-    const peakHeadways = { 'TWL': 2.0, 'ISL': 2.0, 'KTL': 2.1, 'TML': 2.7, 'TKL': 2.5, 'EAL': 2.7, 'TCL': 3.6, 'SIL': 3.3, 'AEL': 10.0, 'DRL': 4.5 };
-    const offPeakHeadways = { 'TWL': 3.5, 'ISL': 3.6, 'KTL': 4.0, 'TML': 5.5, 'TKL': 5.0, 'EAL': 6.0, 'TCL': 7.0, 'SIL': 6.0, 'AEL': 15.0, 'DRL': 10.0 };
+    const peakHeadways = { 'TWL': 2.0, 'ISL': 2.0, 'KTL': 2.1, 'TML': 2.7, 'TKL_POA': 2.5, 'TKL_LHP': 6.0, 'EAL_LW': 3.5, 'EAL_LMC': 8.0, 'TCL': 3.6, 'SIL': 3.3, 'AEL': 10.0, 'DRL': 4.5 };
+    const offPeakHeadways = { 'TWL': 3.5, 'ISL': 3.6, 'KTL': 4.0, 'TML': 5.5, 'TKL_POA': 5.0, 'TKL_LHP': 10.0, 'EAL_LW': 6.0, 'EAL_LMC': 12.0, 'TCL': 7.0, 'SIL': 6.0, 'AEL': 15.0, 'DRL': 10.0 };
     return isPeak ? (peakHeadways[lineCode] || 3.0) : (offPeakHeadways[lineCode] || 5.0);
 }
 
-const LINE_ZONES = { 'TML': { core: [10, 19] }, 'TWL': { core: [0, 5] }, 'EAL': { core: [0, 4] }, 'TCL': { core: [0, 2] }, 'ISL': { core: [3, 8] }, 'KTL': { core: [0, 4] }, 'TKL': { core: [0, 2] }, 'SIL': { core: [0, 0] }, 'AEL': { core: [0, 1] } };
+const LINE_ZONES = { 'TML': { core: [10, 19] }, 'TWL': { core: [0, 5] }, 'EAL_LW': { core: [0, 4] }, 'EAL_LMC': { core: [0, 4] }, 'TCL': { core: [0, 2] }, 'ISL': { core: [3, 8] }, 'KTL': { core: [0, 4] }, 'TKL_POA': { core: [0, 2] }, 'TKL_LHP': { core: [0, 2] }, 'SIL': { core: [0, 0] }, 'AEL': { core: [0, 1] } };
 
 function getDynamicBaseline(lineCode, currentIdx, destCode, hour) {
     const zone = LINE_ZONES[lineCode];
@@ -655,11 +682,32 @@ function calculateLoadLRT(trains, index, train_length, currentRouteNo, currentHo
     const liveHeadway = Math.max(1, t2 - t1), expectedHeadway = 8.0;
     let gapMultiplier = 1.0;
     if (liveHeadway > expectedHeadway) gapMultiplier = Math.pow((liveHeadway / expectedHeadway), 1.1); 
-    else if (liveHeadway < expectedHeadway && liveHeadway > 0) gapMultiplier = Math.max(0.4, liveHeadway / expectedHeadway); 
+    else if (liveHeadway < expectedHeadway && liveHeadway > 0) gapMultiplier = Math.max(0.4, liveHeadway / expectedHeadway);
     
     let loadFactor = baseLoad * gapMultiplier + (Math.random() * 6 - 3); 
     return Math.min(95, Math.max(5, Math.round(loadFactor)));
 }
+
+function processTimeRaw(timeString, diffMsOffset) {
+    let apiM = 0;
+    let apiS = 0;
+    
+    if (timeString.includes(':')) {
+        const targetMs = new Date(timeString.replace(/-/g, '/')).getTime();
+        const apiDiffMs = Math.max(0, targetMs - Date.now() + diffMsOffset);
+        apiM = Math.floor(apiDiffMs / 60000);
+        apiS = Math.floor((apiDiffMs % 60000) / 1000);
+    } else {
+        apiM = parseInt(timeString) || 0;
+        apiS = Math.floor(Math.random() * 60); 
+    }
+    return {
+        minutes: apiM,
+        seconds: apiS,
+        str: apiM > 0 ? `${apiM}m ${apiS}s` : `${apiS}s`
+    };
+}
+
 
 // ==========================================
 // ZONE 3: DATA INITIALIZATION & API
@@ -762,6 +810,9 @@ async function fetchMtrEtaRaw(group, stopKey) {
             const res = await fetchJSONCached(url);
             
             if(res && res.status === 1 && res.data && res.data[`${apiLineCode}-${stn.code}`]) {
+                let currTimeMs = res.data[`${apiLineCode}-${stn.code}`].curr_time ? new Date(res.data[`${apiLineCode}-${stn.code}`].curr_time.replace(/-/g, '/')).getTime() : Date.now();
+                let serverOffsetMs = Date.now() - currTimeMs; 
+                
                 const data = res.data[`${apiLineCode}-${stn.code}`];
                 const validDests = routeStopsCache[group.key].map(s => s.code);
                 
@@ -779,13 +830,24 @@ async function fetchMtrEtaRaw(group, stopKey) {
                         const ttnt = parseInt(t.ttnt) || 0;
                         const load = calculateLoadHR(safeArray, i, stn.isTerminal, group.key, t.dest, currentIdx, currentHour);
                         
+                        let timeData = { minutes: ttnt, seconds: 0, str: t.time ? t.time.substring(11, 19) : '' }; 
+                        if (t.time) {
+                            timeData = processTimeRaw(t.time, serverOffsetMs);
+                        } else {
+                           timeData.seconds = Math.floor(Math.random() * 60); 
+                           timeData.str = ttnt > 0 ? `${ttnt}m ${timeData.seconds}s` : `${timeData.seconds}s`;
+                        }
+
                         results.push({
                             destName: `To ${destName}`,
-                            mins: ttnt,
-                            timeText: (t.ttnt === "0" || t.ttnt === "-") ? 'Due' : `${ttnt}m`,
+                            mins: timeData.minutes,
+                            sortTimeMs: timeData.minutes * 60000 + timeData.seconds * 1000,
+                            mainTimeText: (t.ttnt === "0" || t.ttnt === "-") ? 'Due' : `${timeData.minutes}m`,
+                            apiStr: timeData.str,
                             platText: `Plat ${t.plat}`,
                             loadFactor: load,
-                            carInfo: null
+                            carInfo: null,
+                            isScheduled: false
                         });
                     });
                 };
@@ -803,54 +865,83 @@ async function fetchMtrEtaRaw(group, stopKey) {
                         if (t.route_no.trim() !== targetRouteNo) return;
 
                         const timeStr = t.time_en ? t.time_en.trim().toLowerCase() : '';
-                        let mins = 99, timeText = timeStr;
+                        let timeData = { minutes: 99, seconds: 0, str: '-' };
+                        let isScheduled = false;
+
                         if (timeStr === '-' || timeStr === 'arriving') {
-                            mins = 0; timeText = 'Due';
+                            timeData.minutes = 0;
+                            timeData.seconds = 0;
+                            timeData.str = 'Arriving';
                         } else {
                             const m = timeStr.match(/\d+/);
-                            if(m) { mins = parseInt(m[0], 10); timeText = `${mins}m`; }
+                            if(m) { 
+                                timeData.minutes = parseInt(m[0], 10); 
+                                timeData.seconds = Math.floor(Math.random() * 60); 
+                                timeData.str = `${timeData.minutes}m ${timeData.seconds}s`; 
+                            }
                         }
+                        
                         const load = calculateLoadLRT(safeArray, i, t.train_length, t.route_no, currentHour);
                         const isTwoCar = (t.train_length === "2" || t.train_length === 2);
+                        
                         results.push({
                             destName: `To ${t.dest_en}`,
-                            mins: mins,
-                            timeText: timeText,
+                            mins: timeData.minutes,
+                            sortTimeMs: timeData.minutes * 60000 + timeData.seconds * 1000,
+                            mainTimeText: (timeData.minutes === 0) ? 'Due' : `${timeData.minutes}m`,
+                            apiStr: timeData.str,
                             platText: `Plat ${plat.platform_id}`,
                             loadFactor: load,
-                            carInfo: isTwoCar ? '2-Car' : '1-Car'
+                            carInfo: isTwoCar ? '2-Car' : '1-Car',
+                            isScheduled: isScheduled
                         });
                     });
                 });
             }
         }
     } catch(e) { console.error(e); }
-    return results.sort((a,b) => a.mins - b.mins);
+    return results.sort((a,b) => a.sortTimeMs - b.sortTimeMs);
 }
 
+
 // ==========================================
-// ZONE 4: MAPS & GPS LOGIC
+// ZONE 4: MAPS & CONTINUOUS GPS TRACKING
 // ==========================================
 function makeUserIcon() {
     return L.divIcon({ className: 'custom-user-icon', html: '<div></div>', iconSize: [22, 22] });
 }
 
+function updateUserMarkers() {
+    if (!lastKnownPos) return;
+    const icon = makeUserIcon();
+    if (mapInstance) {
+        if (!userMarkerDetail) userMarkerDetail = L.marker([lastKnownPos.lat, lastKnownPos.lon], {icon, zIndexOffset: 1000}).addTo(mapInstance);
+        else userMarkerDetail.setLatLng([lastKnownPos.lat, lastKnownPos.lon]);
+    }
+    if (globalMapInstance) {
+        if (!userMarkerGlobal) userMarkerGlobal = L.marker([lastKnownPos.lat, lastKnownPos.lon], {icon, zIndexOffset: 1000}).addTo(globalMapInstance);
+        else userMarkerGlobal.setLatLng([lastKnownPos.lat, lastKnownPos.lon]);
+    }
+}
+
+function startGPSTracking() {
+    if (!navigator.geolocation || gpsWatcherId) return;
+    gpsWatcherId = navigator.geolocation.watchPosition((pos) => {
+        lastKnownPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+        updateUserMarkers();
+    }, (err) => { console.warn('GPS Watch Error:', err); }, { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 });
+}
+
 function refreshGPS(timeoutMs = 4000) {
     return new Promise((resolve) => {
         if (!navigator.geolocation) { resolve(lastKnownPos); return; }
+        
         const fallback = setTimeout(() => resolve(lastKnownPos), timeoutMs + 500);
+        
         navigator.geolocation.getCurrentPosition((pos) => {
             clearTimeout(fallback);
             lastKnownPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-            const icon = makeUserIcon();
-            if (mapInstance) {
-                if (!userMarkerDetail) userMarkerDetail = L.marker([lastKnownPos.lat, lastKnownPos.lon], {icon, zIndexOffset: 1000}).addTo(mapInstance);
-                else userMarkerDetail.setLatLng([lastKnownPos.lat, lastKnownPos.lon]);
-            }
-            if (globalMapInstance) {
-                if (!userMarkerGlobal) userMarkerGlobal = L.marker([lastKnownPos.lat, lastKnownPos.lon], {icon, zIndexOffset: 1000}).addTo(globalMapInstance);
-                else userMarkerGlobal.setLatLng([lastKnownPos.lat, lastKnownPos.lon]);
-            }
+            updateUserMarkers();
             resolve(lastKnownPos);
         }, () => {
             clearTimeout(fallback);
@@ -875,16 +966,7 @@ function locateNearestStopPromise() {
         navigator.geolocation.getCurrentPosition((pos) => {
             clearTimeout(fallback);
             lastKnownPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-            const userIcon = makeUserIcon();
-            
-            if(mapInstance) {
-                if(!userMarkerDetail) userMarkerDetail = L.marker([lastKnownPos.lat, lastKnownPos.lon], {icon: userIcon, zIndexOffset: 1000}).addTo(mapInstance);
-                else userMarkerDetail.setLatLng([lastKnownPos.lat, lastKnownPos.lon]);
-            }
-            if(globalMapInstance) {
-                if(!userMarkerGlobal) userMarkerGlobal = L.marker([lastKnownPos.lat, lastKnownPos.lon], {icon: userIcon, zIndexOffset: 1000}).addTo(globalMapInstance);
-                else userMarkerGlobal.setLatLng([lastKnownPos.lat, lastKnownPos.lon]);
-            }
+            updateUserMarkers();
             
             let closest = null, minDistance = Infinity;
             allStops.forEach(s => {
@@ -903,6 +985,7 @@ function locateNearestStopPromise() {
                 document.getElementById('mainLocationText').innerText = 'No nearby stations';
                 document.getElementById('mainRouteList').innerHTML = '';
             }
+            startGPSTracking();
             resolve(true);
         }, () => {
             clearTimeout(fallback);
@@ -911,6 +994,46 @@ function locateNearestStopPromise() {
         }, { enableHighAccuracy: true, timeout: 4500, maximumAge: 10000 });
     });
 }
+
+async function recenterMap(mapType) {
+    let pos = lastKnownPos;
+    if (!pos) pos = await refreshGPS(2000);
+    if (!pos) return;
+    
+    if (mapType === 'detail' && mapInstance) {
+        mapInstance.flyTo([pos.lat, pos.lon], 16, { animate: true, duration: 1 });
+    } else if (mapType === 'global' && globalMapInstance) {
+        globalMapInstance.flyTo([pos.lat, pos.lon], 16, { animate: true, duration: 1 });
+    }
+}
+
+// Custom Leaflet Control for the GPS Recenter Button
+L.Control.Recenter = L.Control.extend({
+    options: { position: 'bottomright' },
+    initialize: function(mapType) { this.mapType = mapType; },
+    onAdd: function(map) {
+        var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+        container.style.backgroundColor = 'var(--bg-white)';
+        container.style.width = '34px';
+        container.style.height = '34px';
+        container.style.cursor = 'pointer';
+        container.style.display = 'flex';
+        container.style.alignItems = 'center';
+        container.style.justifyContent = 'center';
+        container.style.marginBottom = '10px';
+        container.style.boxShadow = '0 1px 5px rgba(0,0,0,0.65)';
+        container.style.borderRadius = '4px';
+        
+        container.innerHTML = `<svg style="width:20px;height:20px;fill:var(--accent-blue);" viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>`;
+        
+        L.DomEvent.disableClickPropagation(container);
+        container.onclick = function(e){
+            e.preventDefault();
+            recenterMap(this.mapType);
+        }.bind(this);
+        return container;
+    }
+});
 
 function initDetailMap() {
     mapInstance = L.map('map-container', { zoomControl: false }).setView([22.3, 114.16], 11);
@@ -921,6 +1044,18 @@ function initDetailMap() {
         className: 'dark-tiles'
     }).addTo(mapInstance);
     L.control.zoom({ position: 'bottomright' }).addTo(mapInstance);
+    new L.Control.Recenter('detail').addTo(mapInstance);
+
+    let lastTapTime = 0;
+    document.getElementById('map-container').addEventListener('touchstart', function(e) {
+        if (e.touches.length > 1) return;
+        const now = Date.now();
+        if (now - lastTapTime < 400 && now - lastTapTime > 0) {
+            mapInstance.zoomIn();
+            if(e.cancelable) e.preventDefault();
+        }
+        lastTapTime = now;
+    }, { passive: false });
 }
 
 function initGlobalMap() {
@@ -938,14 +1073,25 @@ function initGlobalMap() {
     }).addTo(globalMapInstance);
     
     L.control.zoom({ position: 'bottomright' }).addTo(globalMapInstance);
+    new L.Control.Recenter('global').addTo(globalMapInstance);
     
     if (lastKnownPos) {
         userMarkerGlobal = L.marker([lastKnownPos.lat, lastKnownPos.lon], {icon: makeUserIcon(), zIndexOffset: 1000}).addTo(globalMapInstance);
     }
 
-    // Attach event listeners to cull and render markers based on viewport
     globalMapInstance.on('moveend', renderGlobalMapStops);
     renderGlobalMapStops();
+
+    let lastTapTime = 0;
+    document.getElementById('global-map-container').addEventListener('touchstart', function(e) {
+        if (e.touches.length > 1) return;
+        const now = Date.now();
+        if (now - lastTapTime < 400 && now - lastTapTime > 0) {
+            globalMapInstance.zoomIn();
+            if(e.cancelable) e.preventDefault();
+        }
+        lastTapTime = now;
+    }, { passive: false });
 }
 
 function setMapFilter(filter) {
@@ -959,7 +1105,6 @@ function setMapFilter(filter) {
 function renderGlobalMapStops() {
     if (!globalMapInstance) return;
     
-    // Clear old markers
     globalMarkers.forEach(m => globalMapInstance.removeLayer(m));
     globalMarkers = [];
 
@@ -971,15 +1116,13 @@ function renderGlobalMapStops() {
         candidateStops = candidateStops.filter(s => s.network === activeMapFilter);
     }
 
-    // Viewport-based culling prevents browser bloat
     let visibleStops = candidateStops.filter(s => {
         const lat = parseFloat(s.latitude);
         const lon = parseFloat(s.longitude);
         return bounds.contains([lat, lon]);
     });
 
-    // When zoomed far out, show interchanges and terminals
-    if (currentZoom < 12) {
+    if (currentZoom < 13) {
         visibleStops = visibleStops.filter(s => s.isTerminal || s.routes.size > 1 || s.network === 'HR');
     }
 
@@ -1360,6 +1503,8 @@ function generateExpandedETAsHtml(arrs) {
         let badgesHtml = `<span class="occ-pill ${occClass}">${occText}</span>`;
         if(arr.carInfo) badgesHtml += `<span class="occ-pill occ-neutral">${arr.carInfo}</span>`;
         
+        let color = arr.isScheduled ? 'var(--accent-orange)' : 'var(--accent-green)';
+        
         html += `
             <div class="eta-row">
                 <div class="eta-row-left">
@@ -1369,7 +1514,10 @@ function generateExpandedETAsHtml(arrs) {
                         ${badgesHtml}
                     </div>
                 </div>
-                <div class="eta-row-time" style="color:var(--accent-green);">${arr.timeText}</div>
+                <div class="eta-row-time" style="display:flex; flex-direction:column; align-items:flex-end; line-height:1.1;">
+                    <div style="color:${color};">${arr.mainTimeText}</div>
+                    <div style="font-size:0.75rem; font-weight:700; color:var(--text-sub); margin-top:4px;">Official: ${arr.apiStr}</div>
+                </div>
             </div>
         `;
     }
@@ -1389,7 +1537,7 @@ function renderSearchResults() {
     
     if (!query) {
         if (activeRegionFilter === 'ALL') {
-            let nearby = getNearbyRoutes(3.5, 'ALL');
+            let nearby = getNearbyRoutes(2.5, 'ALL');
             
             if (!lastKnownPos && nearby.length === 0) {
                 listEl.innerHTML = `<div class="text-center" style="padding-top:60px;"><div style="font-size:3rem; margin-bottom:12px;">📍</div><div style="font-weight:700;">Locating nearby stations...</div></div>`;
@@ -1475,7 +1623,9 @@ function renderFavList() {
               <div class="route-list-item" onclick="openRouteDetail('${g.key}')">
                   <div class="route-no-col" style="background-color:${g.colorHex};">${g.routeNo}</div>
                   <div class="route-info-col"><div class="route-dest">${g.dest_e}</div><div class="route-sub">${g.company}</div></div>
-                  <button class="del-fav-btn" onclick="event.stopPropagation(); removeFavRoute('${g.key}');">🗑️</button>
+                  <button class="del-fav-btn" onclick="event.stopPropagation(); removeFavRoute('${g.key}');">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
               </div>
             `;
         }
@@ -1623,8 +1773,13 @@ function startTimer() {
 }
 
 document.addEventListener("visibilitychange", () => {
-    if (document.hidden) clearInterval(timerInterval);
-    else if (groupedRoutes.length > 0) startTimer();
+    if (document.hidden) {
+        clearInterval(timerInterval);
+        if (gpsWatcherId) { navigator.geolocation.clearWatch(gpsWatcherId); gpsWatcherId = null; }
+    } else if (groupedRoutes.length > 0) {
+        startTimer();
+        startGPSTracking();
+    }
 });
 
 window.onload = initApp;
